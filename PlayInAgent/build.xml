@@ -18,16 +18,16 @@
     	<mkdir dir="bin-agent"/>
         <javac
             destdir="bin-agent"
-        	source="1.5"
-        	target="1.5"
+        	source="1.8"
+        	target="1.8"
         	debug="true"
 			debuglevel="lines,vars,source"        	
         >
             <src path="src"/>
             <src path="../Normalizer/src"/>
             <classpath>
-                <pathelement location="../Normalizer/lib/asm-3.2.jar"/>
-                <pathelement location="../Normalizer/lib/asm-commons-3.2.jar"/>
+                <pathelement location="../Normalizer/lib/asm-9.7.jar"/>
+                <pathelement location="../Normalizer/lib/asm-commons-9.7.jar"/>
             </classpath>
         </javac>
     </target>
@@ -45,8 +45,8 @@
     	<jar destfile="pia-${tf.version}.jar" manifest="META-INF/MANIFEST.MF">
             <fileset dir="bin-agent"/>
     		<fileset file="pia.properties"/>
-            <zipfileset src="../Normalizer/lib/asm-3.2.jar"/>
-            <zipfileset src="../Normalizer/lib/asm-commons-3.2.jar"/>
+            <zipfileset src="../Normalizer/lib/asm-9.7.jar"/>
+            <zipfileset src="../Normalizer/lib/asm-commons-9.7.jar"/>
         </jar>
 
     	<delete dir="bin-agent"/>

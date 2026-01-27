@@ -11,3 +11,5 @@ poa.jar
 /bin/
 .classpath
 .project
+PlayInAgent/pia-${tf.version}.jar
+de.bodden.tamiflex/lib/pia.jar
