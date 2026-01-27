@@ -45,9 +45,8 @@ public abstract class AbstractArrayTransformation extends AbstractTransformation
 					super.visitVarInsn(ALOAD, 0);
 					super.visitVarInsn(loadDimensionOpcode(), 1); // Load dimension
 					super.visitMethodInsn(INVOKESTATIC, "de/bodden/tamiflex/playout/rt/ReflLogger", methodName(), methodSignature(), false);
-
-                    super.visitInsn(opcode);
 				}
+                super.visitInsn(opcode);
             }
         };
 	}
