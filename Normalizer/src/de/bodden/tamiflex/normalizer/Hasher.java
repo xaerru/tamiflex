@@ -50,7 +50,8 @@ public class Hasher {
         "org/apache/activemq/store/journal/JournalTopicMessageStore",   // DaCapo-9.12 tradebeans and tradesoap benchmarks
         "BySpringCGLIB",                                                // DaCapo-23.10 spring benchmark
         "$HibernateProxy",                                              // DaCapo-23.10 spring benchmark
-        "org/eclipse/jdt/internal/core/search/indexing/IndexManager"    // DaCapo-23.10 eclipse benchmark
+        "org/eclipse/jdt/internal/core/search/indexing/IndexManager",   // DaCapo-23.10 eclipse benchmark
+        "$$Lambda$"                                                     // Treat Lambda classes as generated
         // Note: Yet to address tradebeans and tradesoap benchmarks from DaCapo-23.10
         /*,"schemaorg_apache_xmlbeans/system/" these names seem to be stable, as they are already hashed */
 	};

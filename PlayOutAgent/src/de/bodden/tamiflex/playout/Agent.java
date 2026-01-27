@@ -42,6 +42,7 @@ public class Agent {
 	private static boolean count = false;
 	private static boolean useDeclaredTypes;
 	private static boolean verbose = false;
+	private static boolean propertiesLoaded = false;
 	private static String outPath = "out";
 	private static String transformations = "";
 	private static Socket socket;
@@ -191,10 +192,17 @@ public class Agent {
 				outPath = (String) props.get("outDir"); 
 			if(props.containsKey("transformations"))
 				transformations = (String) props.get("transformations"); 
+            propertiesLoaded = true;
 		} catch (IOException e) {
 			throw new InternalError("Error loading default properties file: "+e.getMessage()); 
 		}		
 	}
+
+    public static String getOutPath() {
+        if (!propertiesLoaded)
+            loadProperties();
+        return outPath;
+    }
 
 	private static void copyPropFileIfMissing(String userPropFilePath) {
 		File f = new File(userPropFilePath);

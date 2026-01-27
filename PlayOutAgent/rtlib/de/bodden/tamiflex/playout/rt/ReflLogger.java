@@ -11,6 +11,12 @@
 package de.bodden.tamiflex.playout.rt;
 import static de.bodden.tamiflex.playout.rt.ShutdownStatus.hasShutDown;
 
+import org.objectweb.asm.ClassReader;
+
+import static de.bodden.tamiflex.normalizer.Hasher.isGeneratedClass;
+import static de.bodden.tamiflex.normalizer.Hasher.generateHashNumber;
+import static de.bodden.tamiflex.normalizer.Hasher.hashedClassNameForGeneratedClassName;
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
@@ -19,6 +25,9 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.PrintWriter;
+import java.io.File;
+import java.io.IOException;
+import java.io.FileOutputStream;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -169,13 +178,8 @@ public class ReflLogger {
 			// the classes that are dumped and soot can process them.
 			if (className.contains("$$Lambda$"))
 			{
-				String slashHashCode = "/" + c.getDeclaringClass().hashCode();
-				if (!className.endsWith(slashHashCode)) {
-					System.err.println("unexpected lambda proxy class: " + className);
-				}
-				else {
-					className = className.substring(0, className.length() - slashHashCode.length());
-				}
+                String suffix = className.substring(className.lastIndexOf('/'));
+                className = className.substring(0, className.length() - suffix.length());
 			}
 			logAndIncrementTargetMethodEntry(frame.getClassName()+"."+frame.getMethodName(),frame.getLineNumber(),constructorMethodKind,className,"void","<init>", c.isAccessible(), paramTypes);
 
@@ -193,6 +197,43 @@ public class ReflLogger {
 		}
 		return paramTypes;
 	}
+
+    public static void dumpLambdaClass(byte[] c, String outPath) {
+		if(isReentrant()) return;
+		try {
+            ClassReader cr = new ClassReader(c);
+            String className = cr.getClassName();
+            byte[] classfileBuffer = c;
+            File localOutDir = new File(outPath);
+            String simpleName = className;
+
+            if (className.contains("/")) {
+                String packageName = className.substring(0, className.lastIndexOf('/'));
+                simpleName = className.substring(className.lastIndexOf('/') + 1);
+
+                localOutDir = new File(localOutDir, packageName);
+                localOutDir.mkdirs();
+            }
+            generateHashNumber(className, c);
+            simpleName = hashedClassNameForGeneratedClassName(className);
+
+            String fileName = simpleName.substring(className.lastIndexOf('/') + 1) + ".class";
+            File outFile = new File(localOutDir, fileName);
+
+            if (outFile.exists()) {
+                outFile.delete();
+            }
+            try (FileOutputStream fos = new FileOutputStream(outFile)) {
+                fos.write(classfileBuffer);
+                // System.out.println("Dumped Lambda: " + outFile.getAbsolutePath());
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+		} finally {
+			leavingReflectionAPI();
+		}
+    }
 	
 
 	public static void methodMethodInvoke(Object receiver, Method m, Kind methodKind) {
