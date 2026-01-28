@@ -12,6 +12,7 @@ package de.bodden.tamiflex.normalizer;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.zip.CRC32;
 
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassWriter;
@@ -50,7 +51,8 @@ public class Hasher {
         "org/apache/activemq/store/journal/JournalTopicMessageStore",   // DaCapo-9.12 tradebeans and tradesoap benchmarks
         "BySpringCGLIB",                                                // DaCapo-23.10 spring benchmark
         "$HibernateProxy",                                              // DaCapo-23.10 spring benchmark
-        "org/eclipse/jdt/internal/core/search/indexing/IndexManager"    // DaCapo-23.10 eclipse benchmark
+        "org/eclipse/jdt/internal/core/search/indexing/IndexManager",   // DaCapo-23.10 eclipse benchmark
+        "$$Lambda$"                                                     // Treat Lambda classes as generated
         // Note: Yet to address tradebeans and tradesoap benchmarks from DaCapo-23.10
         /*,"schemaorg_apache_xmlbeans/system/" these names seem to be stable, as they are already hashed */
 	};
@@ -131,7 +133,11 @@ public class Hasher {
 		
         // Compute Hash
         // Anything post the first occurance of infix is ignored and replaced with a hash value
-		String hash = SHAHash.SHA1(renamed);
+		// String hash = SHAHash.SHA1(renamed);
+        // Use CRC32 for now because with SHA1 fails when called by InnerClassLambdaMetaFactory
+        CRC32 crc = new CRC32();
+        crc.update(renamed);
+		String hash = Long.toHexString(crc.getValue());
 		for (String infix: instableNames) {
 			if (theClassName.contains(infix)) {
 				String hashedName = theClassName.substring(0, theClassName.indexOf(infix)+infix.length()) + "$HASHED$" + hash;

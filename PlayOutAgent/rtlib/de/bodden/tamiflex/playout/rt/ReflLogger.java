@@ -13,6 +13,10 @@ import static de.bodden.tamiflex.playout.rt.ShutdownStatus.hasShutDown;
 
 import org.objectweb.asm.ClassReader;
 
+import static de.bodden.tamiflex.normalizer.Hasher.isGeneratedClass;
+import static de.bodden.tamiflex.normalizer.Hasher.generateHashNumber;
+import static de.bodden.tamiflex.normalizer.Hasher.hashedClassNameForGeneratedClassName;
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
@@ -210,8 +214,10 @@ public class ReflLogger {
                 localOutDir = new File(localOutDir, packageName);
                 localOutDir.mkdirs();
             }
+            generateHashNumber(className, c);
+            simpleName = hashedClassNameForGeneratedClassName(className);
 
-            String fileName = simpleName + ".class";
+            String fileName = simpleName.substring(className.lastIndexOf('/') + 1) + ".class";
             File outFile = new File(localOutDir, fileName);
 
             if (outFile.exists()) {

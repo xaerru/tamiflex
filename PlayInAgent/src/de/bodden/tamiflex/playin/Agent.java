@@ -21,6 +21,10 @@ import java.lang.instrument.Instrumentation;
 import java.lang.instrument.UnmodifiableClassException;
 import java.net.URISyntaxException;
 import java.util.Properties;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
+import java.util.jar.JarFile;
 
 import de.bodden.tamiflex.normalizer.Hasher;
 
@@ -33,15 +37,19 @@ public class Agent {
 
 	private static String inPath = "out";
 	private static boolean verbose = false;
+	private static String agentJarFilePath;
 
 	public static void premain(String agentArgs, Instrumentation inst) throws IOException, ClassNotFoundException, UnmodifiableClassException, URISyntaxException, IllegalClassFormatException {
 		
 		System.out.println("=======================================================");
 		System.out.println("TamiFlex Play-In Agent Version "+Agent.class.getPackage().getImplementationVersion());
 		loadProperties();
+		appendRtJarToBootClassPath(inst);
 		
 		final ClassReplacer replacer = new ClassReplacer(inPath,verbose);
+		final LambdaLoader lambdaReplacer = new LambdaLoader();
 		inst.addTransformer(replacer,true);
+		inst.addTransformer(lambdaReplacer,true);
 		
 		Runtime.getRuntime().addShutdownHook(new Thread() {
 			@Override
@@ -72,6 +80,7 @@ public class Agent {
 				}
 			}
 		}
+        inst.removeTransformer(lambdaReplacer);
 
         // Classes loaded further down the line will be modified via ClassReplacer's transform() method
 	}
@@ -152,6 +161,18 @@ public class Agent {
 		System.out.println(DISCLAIMER);
 		System.out.println("============================================================");
 		System.exit(1);
+	}
+
+	private static void appendRtJarToBootClassPath(Instrumentation inst) throws URISyntaxException, IOException {
+		URL locationOfAgent = Agent.class.getResource("/de/bodden/tamiflex/playin/rt/Helper.class");
+		if(locationOfAgent==null) {
+			System.err.println("Support library for reflection log not found on classpath.");
+			System.exit(1);
+		}
+		agentJarFilePath = locationOfAgent.getPath().substring(0, locationOfAgent.getPath().indexOf("!"));		
+		URI uri = new URI(agentJarFilePath);
+		JarFile jarFile = new JarFile(new File(uri));
+		inst.appendToBootstrapClassLoaderSearch(jarFile);
 	}
 	
 	private final static String DISCLAIMER=

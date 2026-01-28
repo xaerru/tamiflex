@@ -68,6 +68,7 @@ public class ClassDumper implements ClassFileTransformer {
 	
 	public void writeClassesToDisk() {
 		synchronized (this) {
+            // TODO: Add dumped lambda class files to classNameToBytes
 			Set<Entry<String, byte[]>> entrySet = classNameToBytes.entrySet();
 			for (Map.Entry<String, byte[]> entry: entrySet) {
 				String className = entry.getKey();
