@@ -26,6 +26,7 @@ import de.bodden.tamiflex.normalizer.ClassRenamer.NoHashedNameException;
 public class Hasher {
 	
 	protected final static Map<String,String> generatedClassNameToHashedClassName = new HashMap<String, String>();	
+	protected final static Map<byte[],String> generatedClassBytesToHashedClassName = new HashMap<byte[], String>();	
 
 	protected final static Map<String,byte[]> hashedClassNameToOriginalBytes = new HashMap<String, byte[]>();	
 
@@ -51,7 +52,7 @@ public class Hasher {
         "BySpringCGLIB",                                                // DaCapo-23.10 spring benchmark
         "$HibernateProxy",                                              // DaCapo-23.10 spring benchmark
         "org/eclipse/jdt/internal/core/search/indexing/IndexManager",   // DaCapo-23.10 eclipse benchmark
-        "$$Lambda$"                                                     // Treat Lambda classes as generated
+        "$$Lambda"                                                      // Treat Lambda classes as generated
         // Note: Yet to address tradebeans and tradesoap benchmarks from DaCapo-23.10
         /*,"schemaorg_apache_xmlbeans/system/" these names seem to be stable, as they are already hashed */
 	};
@@ -71,6 +72,7 @@ public class Hasher {
 		
         ClassReader creader = new ClassReader(classBytes);
     	ClassWriter writer = new ClassWriter(ClassWriter.COMPUTE_MAXS); // I think COMPUTE_MAXS suffices here for hash computation
+        boolean isLambda = theClassName.contains("$$Lambda");
     	
         ClassRemapper visitor = new ClassRemapper(ASM9, writer, 
             new Remapper() {
@@ -142,11 +144,17 @@ public class Hasher {
 					|| generatedClassNameToHashedClassName.get(theClassName).equals(hashedName) :
 					"Hashed names not stable for "+theClassName+" -> "+generatedClassNameToHashedClassName.get(theClassName)+", "+hashedName;
 					
-				generatedClassNameToHashedClassName.put(theClassName, hashedName);
+                if (isLambda)
+                    generatedClassBytesToHashedClassName.put(classBytes, hashedName);
+                else
+                    generatedClassNameToHashedClassName.put(theClassName, hashedName);
                 break;
 			}
 		}
-		assert generatedClassNameToHashedClassName.containsKey(theClassName);
+        if (isLambda)
+            assert generatedClassBytesToHashedClassName.containsKey(classBytes);
+        else
+            assert generatedClassNameToHashedClassName.containsKey(theClassName);
 	}
 	
 	public static boolean isGeneratedClass(String className) {
@@ -163,6 +171,11 @@ public class Hasher {
 		assert isGeneratedClass(className) : "Not a generated class name: "+className;
 		String hashedName = generatedClassNameToHashedClassName.get(className);
 		assert hashedName != null : "No hashed class name for generated class: "+className;
+		return hashedName;
+	}
+
+	public static String hashedClassNameForGeneratedClassBytes(byte[] classBytes) {
+		String hashedName = generatedClassBytesToHashedClassName.get(classBytes);
 		return hashedName;
 	}
 	
