@@ -15,7 +15,7 @@ import org.objectweb.asm.ClassReader;
 
 import static de.bodden.tamiflex.normalizer.Hasher.isGeneratedClass;
 import static de.bodden.tamiflex.normalizer.Hasher.generateHashNumber;
-import static de.bodden.tamiflex.normalizer.Hasher.hashedClassNameForGeneratedClassName;
+import static de.bodden.tamiflex.normalizer.Hasher.hashedClassNameForGeneratedClassBytes;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -176,7 +176,7 @@ public class ReflLogger {
 			// dump the classes to disk) the name does not contain the "/<hash code>".
 			// This logic below is to remove the hash code so the reflection log entries match
 			// the classes that are dumped and soot can process them.
-			if (className.contains("$$Lambda$"))
+			if (className.contains("$$Lambda"))
 			{
                 String suffix = className.substring(className.lastIndexOf('/'));
                 className = className.substring(0, className.length() - suffix.length());
@@ -215,9 +215,9 @@ public class ReflLogger {
                 localOutDir.mkdirs();
             }
             generateHashNumber(className, c);
-            simpleName = hashedClassNameForGeneratedClassName(className);
+            simpleName = hashedClassNameForGeneratedClassBytes(c);
 
-            String fileName = simpleName.substring(className.lastIndexOf('/') + 1) + ".class";
+            String fileName = simpleName.substring(simpleName.lastIndexOf('/') + 1) + ".class";
             File outFile = new File(localOutDir, fileName);
 
             if (outFile.exists()) {

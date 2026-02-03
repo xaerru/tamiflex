@@ -1,6 +1,6 @@
 package de.bodden.tamiflex.playin.rt;
 
-import static de.bodden.tamiflex.normalizer.Hasher.hashedClassNameForGeneratedClassName;
+import static de.bodden.tamiflex.normalizer.Hasher.hashedClassNameForGeneratedClassBytes;
 import static de.bodden.tamiflex.normalizer.Hasher.generateHashNumber;
 
 import org.objectweb.asm.ClassReader;
@@ -18,7 +18,7 @@ public class Helper {
 
         File localOutDir = new File(outPath);
         generateHashNumber(currentRuntimeName, c);
-        String simpleName = hashedClassNameForGeneratedClassName(currentRuntimeName);;
+        String simpleName = hashedClassNameForGeneratedClassBytes(c);;
 
         if (lookupName.contains("/")) {
             String packageName = lookupName.substring(0, lookupName.lastIndexOf('/'));
@@ -32,7 +32,7 @@ public class Helper {
 
         if (targetFile.exists()) {
             try {
-                System.out.println("Loading dumped lambda from: " + targetFile.getAbsolutePath());
+                // System.out.println("Loading dumped lambda from: " + targetFile.getAbsolutePath());
                 byte[] diskBytes = Files.readAllBytes(targetFile.toPath());
 
                 return diskBytes;
