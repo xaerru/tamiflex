@@ -30,8 +30,8 @@
             <classpath>
                 <pathelement location="poa-rt.jar"/>
                 <pathelement location="lib/ant.jar"/>
-                <pathelement location="../Normalizer/lib/asm-9.7.jar"/>
-                <pathelement location="../Normalizer/lib/asm-commons-9.7.jar"/>
+                <pathelement location="../Normalizer/lib/asm-9.9.1.jar"/>
+                <pathelement location="../Normalizer/lib/asm-commons-9.9.1.jar"/>
             </classpath>
           <compilerarg value="-Xlint:deprecation" />
         </javac>
@@ -50,8 +50,8 @@
         <jar destfile="poa-${tf.version}.jar" manifest="META-INF/MANIFEST.MF">
             <fileset dir="bin-agent"/>
             <fileset file="poa.properties"/>
-            <zipfileset src="../Normalizer/lib/asm-9.7.jar"/>
-            <zipfileset src="../Normalizer/lib/asm-commons-9.7.jar"/>
+            <zipfileset src="../Normalizer/lib/asm-9.9.1.jar"/>
+            <zipfileset src="../Normalizer/lib/asm-commons-9.9.1.jar"/>
         </jar>
 		<delete dir="bin-agent"/>
 		<delete dir="META-INF"/>
