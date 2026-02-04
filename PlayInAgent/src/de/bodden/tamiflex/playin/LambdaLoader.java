@@ -66,7 +66,7 @@ public class LambdaLoader implements ClassFileTransformer {
         public void visitMethodInsn(int opcode, String owner, String name, String descriptor, boolean isInterface) {
             super.visitMethodInsn(opcode, owner, name, descriptor, isInterface);
 
-            if (owner.equals("jdk/internal/org/objectweb/asm/ClassWriter") && name.equals("toByteArray")) {
+            if (owner.equals("java/lang/classfile/ClassFile") && name.equals("build")) {
                 // byte[] is on stack
                 // Push "out" string
                 // Use the return value of invokestatic

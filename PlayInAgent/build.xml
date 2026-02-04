@@ -27,8 +27,8 @@
             <src path="rtlib"/>
             <src path="../Normalizer/src"/>
             <classpath>
-                <pathelement location="../Normalizer/lib/asm-9.7.jar"/>
-                <pathelement location="../Normalizer/lib/asm-commons-9.7.jar"/>
+                <pathelement location="../Normalizer/lib/asm-9.9.1.jar"/>
+                <pathelement location="../Normalizer/lib/asm-commons-9.9.1.jar"/>
             </classpath>
         </javac>
     </target>
@@ -46,8 +46,8 @@
     	<jar destfile="pia-${tf.version}.jar" manifest="META-INF/MANIFEST.MF">
             <fileset dir="bin-agent"/>
     		<fileset file="pia.properties"/>
-            <zipfileset src="../Normalizer/lib/asm-9.7.jar"/>
-            <zipfileset src="../Normalizer/lib/asm-commons-9.7.jar"/>
+            <zipfileset src="../Normalizer/lib/asm-9.9.1.jar"/>
+            <zipfileset src="../Normalizer/lib/asm-commons-9.9.1.jar"/>
         </jar>
 
     	<delete dir="bin-agent"/>
