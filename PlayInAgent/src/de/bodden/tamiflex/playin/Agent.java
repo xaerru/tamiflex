@@ -65,6 +65,9 @@ public class Agent {
 
         // Transform already loaded classes
 		for (Class<?> c : inst.getAllLoadedClasses()) {
+            // Does some side effect which loads InnerClassLambdaMetaFactory with a simple test lambda
+            // Without this call it does not load
+            c.getPackage();
 			if (inst.isModifiableClass(c)) {
 				inst.retransformClasses(c);
 			} else if(verbose) {
