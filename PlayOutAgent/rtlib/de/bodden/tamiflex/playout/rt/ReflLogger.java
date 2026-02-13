@@ -12,6 +12,13 @@ package de.bodden.tamiflex.playout.rt;
 import static de.bodden.tamiflex.playout.rt.ShutdownStatus.hasShutDown;
 
 import org.objectweb.asm.ClassReader;
+import org.objectweb.asm.ClassVisitor;
+import org.objectweb.asm.ClassWriter;
+import org.objectweb.asm.FieldVisitor;
+import org.objectweb.asm.Opcodes;
+import org.objectweb.asm.commons.ClassRemapper;
+import org.objectweb.asm.commons.Remapper;
+import org.objectweb.asm.commons.SimpleRemapper;
 
 import static de.bodden.tamiflex.normalizer.Hasher.isGeneratedClass;
 import static de.bodden.tamiflex.normalizer.Hasher.generateHashNumber;
@@ -148,7 +155,8 @@ public class ReflLogger {
 		if(isReentrant()) return;
 		try {
 			StackTraceElement frame = getInvokingFrame();
-			logAndIncrementTargetClassEntry(frame.getClassName()+"."+frame.getMethodName(),frame.getLineNumber(),classMethodKind,c.getName());
+            String className = tryGetLambdaHashedName(c);
+			logAndIncrementTargetClassEntry(frame.getClassName()+"."+frame.getMethodName(),frame.getLineNumber(),classMethodKind,className);
 		} finally {
 			leavingReflectionAPI();
 		}
@@ -169,18 +177,7 @@ public class ReflLogger {
 		try {
 			StackTraceElement frame = getInvokingFrame();
 			String[] paramTypes = classesToTypeNames(c.getParameterTypes());
-			String className = c.getDeclaringClass().getName();
-			// If this is a lambda proxy class the className comes out in the form:
-			// "<dotted package>.<class>$$Lambda$<count>/<hash code>",
-			// however, when we take its byte code to generate the class name (as happens when we 
-			// dump the classes to disk) the name does not contain the "/<hash code>".
-			// This logic below is to remove the hash code so the reflection log entries match
-			// the classes that are dumped and soot can process them.
-			if (className.contains("$$Lambda"))
-			{
-                String suffix = className.substring(className.lastIndexOf('/'));
-                className = className.substring(0, className.length() - suffix.length());
-			}
+            String className = tryGetLambdaHashedName(c.getDeclaringClass());
 			logAndIncrementTargetMethodEntry(frame.getClassName()+"."+frame.getMethodName(),frame.getLineNumber(),constructorMethodKind,className,"void","<init>", c.isAccessible(), paramTypes);
 
 		} finally {
@@ -198,41 +195,104 @@ public class ReflLogger {
 		return paramTypes;
 	}
 
-    public static void dumpLambdaClass(byte[] c, String outPath) {
-		if(isReentrant()) return;
-		try {
+    public static byte[] dumpLambdaClass(byte[] c, String outPath) {
+        if (isReentrant()) return c;
+        byte[] byteCodeToReturn = c;
+        try {
             ClassReader cr = new ClassReader(c);
-            String className = cr.getClassName();
-            byte[] classfileBuffer = c;
+            String originalClassName = cr.getClassName();
+
             File localOutDir = new File(outPath);
-            String simpleName = className;
-
-            if (className.contains("/")) {
-                String packageName = className.substring(0, className.lastIndexOf('/'));
-                simpleName = className.substring(className.lastIndexOf('/') + 1);
-
+            String packageName = "";
+            if (originalClassName.contains("/")) {
+                packageName = originalClassName.substring(0, originalClassName.lastIndexOf('/'));
                 localOutDir = new File(localOutDir, packageName);
                 localOutDir.mkdirs();
             }
-            generateHashNumber(className, c);
-            simpleName = hashedClassNameForGeneratedClassBytes(c);
 
-            String fileName = simpleName.substring(simpleName.lastIndexOf('/') + 1) + ".class";
+            generateHashNumber(originalClassName, c);
+            String fullHashedInternalName = hashedClassNameForGeneratedClassBytes(c); 
+
+            String hashedSimpleName = fullHashedInternalName.substring(fullHashedInternalName.lastIndexOf('/') + 1);
+            String fileName = hashedSimpleName + ".class";
             File outFile = new File(localOutDir, fileName);
 
             if (outFile.exists()) {
                 outFile.delete();
             }
+
+            // Replace all references with the hashed name
+            ClassWriter cwDump = new ClassWriter(0);
+
+            Remapper remapper = new Remapper() {
+                @Override
+                public String map(String internalName) {
+                    if (internalName.equals(originalClassName)) {
+                        return fullHashedInternalName;
+                    }
+                    return internalName;
+                }
+            };
+
+            ClassVisitor cvDump = new ClassRemapper(cwDump, remapper);
+
+            cr.accept(cvDump, 0);
+            byte[] dumpedBytes = cwDump.toByteArray();
+
+            // Write the renamed bytes to disk
             try (FileOutputStream fos = new FileOutputStream(outFile)) {
-                fos.write(classfileBuffer);
+                fos.write(dumpedBytes);
                 // System.out.println("Dumped Lambda: " + outFile.getAbsolutePath());
             } catch (IOException e) {
                 e.printStackTrace();
             }
 
-		} finally {
-			leavingReflectionAPI();
-		}
+            // Add __TAMIFLEX_HASH to the original(non-renamed) class before returning it to generateInnerClass()
+            // This is to associate java.lang.Class object with the hash
+            // The hashed name is logged to refl.log
+            ClassWriter cw = new ClassWriter(ClassReader.SKIP_DEBUG);
+            ClassVisitor cv = new ClassVisitor(Opcodes.ASM9, cw) {
+                @Override
+                public void visitEnd() {
+                    FieldVisitor fv = super.visitField(
+                        Opcodes.ACC_PUBLIC | Opcodes.ACC_STATIC | Opcodes.ACC_FINAL,
+                        "__TAMIFLEX_HASH",
+                        "Ljava/lang/String;",
+                        null,
+                        fullHashedInternalName
+                    );
+                    if (fv != null) {
+                        fv.visitEnd();
+                    }
+                    super.visitEnd();
+                }
+            };
+
+            cr.accept(cv, 0);
+            byteCodeToReturn = cw.toByteArray();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            leavingReflectionAPI();
+        }
+
+        return byteCodeToReturn;
+    }
+
+    public static String tryGetLambdaHashedName(Class<?> clazz) {
+        String className = clazz.getName();
+        try {
+            if (className.contains("$$Lambda")) {
+                Field hashField = clazz.getDeclaredField("__TAMIFLEX_HASH");
+                hashField.setAccessible(true);
+                String s = (String)hashField.get(null);
+                className = s;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return className;
     }
 	
 
@@ -284,6 +344,10 @@ public class ReflLogger {
 					className = getMethodReceiverClass.getName();
 				}
 			} 
+
+            if (className.contains("$$Lambda")) {
+                className = tryGetLambdaHashedName(resolved.getDeclaringClass());
+            }
 			
 			logAndIncrementTargetMethodEntry(frame.getClassName()+"."+frame.getMethodName(),frame.getLineNumber(),methodKind,className,getTypeName(resolved.getReturnType()),resolved.getName(), m.isAccessible(), paramTypes);
 		} catch (Exception e) {
@@ -415,14 +479,14 @@ public class ReflLogger {
 			    cl = cl.getComponentType();
 			}
 			StringBuffer sb = new StringBuffer();
-			sb.append(cl.getName());
+			sb.append(tryGetLambdaHashedName(cl));
 			for (int i = 0; i < dimensions; i++) {
 			    sb.append("[]");
 			}
 			return sb.toString();
 		    } catch (Throwable e) { /*FALLTHRU*/ }
 		}
-		return type.getName();
+		return tryGetLambdaHashedName(type);
 	}
 
 	/**

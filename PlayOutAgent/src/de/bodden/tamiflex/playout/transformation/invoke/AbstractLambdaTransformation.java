@@ -37,8 +37,11 @@ public abstract class AbstractLambdaTransformation extends AbstractTransformatio
                 // Some classes that get dumped with -Djdk.internal.lambda.dumpProxyClasses=dir/ don't get dumped with this instrumentation
                 // For example: jdk/internal/loader/BootLoader$PackageHelper$$Lambda$1.class
                 // When run with dacapo-23.11-chopin.jar avrora -s small
-                if (owner.equals("java/lang/classfile/ClassFile") && name.equals("build")) {
-                    super.visitInsn(DUP);
+
+                // For OpenJ9 25
+                // if (owner.equals("java/lang/classfile/ClassFile") && name.equals("build")) {
+                // For OpenJ9 21
+                if (owner.equals("jdk/internal/org/objectweb/asm/ClassWriter") && name.equals("toByteArray")) {
                     super.visitLdcInsn(Agent.getOutPath());
                     super.visitMethodInsn(INVOKESTATIC, "de/bodden/tamiflex/playout/rt/ReflLogger", methodName(), methodSignature(), false);
                 }

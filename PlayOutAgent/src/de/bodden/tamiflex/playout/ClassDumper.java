@@ -10,6 +10,7 @@
  ******************************************************************************/
 package de.bodden.tamiflex.playout;
 
+import de.bodden.tamiflex.normalizer.Hasher;
 import static de.bodden.tamiflex.normalizer.Hasher.isGeneratedClass;
 import static de.bodden.tamiflex.normalizer.Hasher.generateHashNumber;
 import static de.bodden.tamiflex.normalizer.Hasher.hashedClassNameForGeneratedClassName;
@@ -28,11 +29,15 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import org.objectweb.asm.ClassVisitor;
+
 import de.bodden.tamiflex.normalizer.NameExtractor;
 
 public class ClassDumper implements ClassFileTransformer {
 
 	protected final File outDir; 
+	private static final String ASM_PKGNAME = ClassVisitor.class.getPackage().getName().replace('.', '/');
+	private static final String NORMALIZER_PKGNAME = Hasher.class.getPackage().getName().replace('.', '/');
 	
 	/**
 	 * It is important that this be a <i>linked</i> hash map because we need to generate hash numbers
@@ -60,6 +65,8 @@ public class ClassDumper implements ClassFileTransformer {
 		}
 		if(hasShutDown) return null;
 		if(className.startsWith(Agent.PKGNAME)) return null;
+		if(className.startsWith(ASM_PKGNAME)) return null;
+		if(className.startsWith(NORMALIZER_PKGNAME)) return null;
 		
 		byte[] oldBytes;
 
