@@ -106,7 +106,7 @@ public abstract class RuntimeLogEntry {
 		String hashedName = Hasher.isGeneratedClass(slashedClassName) ?
 			Hasher.hashedClassNameForGeneratedClassName(slashedClassName) : 
 			slashedClassName;
-        if (slashedClassName.contains("$$Lambda$")) {
+        if (slashedClassName.contains("$$Lambda")) {
             hashedName = slashedClassName;
         }
 		return dotted(hashedName);
