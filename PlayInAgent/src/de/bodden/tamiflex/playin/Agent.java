@@ -47,9 +47,7 @@ public class Agent {
 		appendRtJarToBootClassPath(inst);
 		
 		final ClassReplacer replacer = new ClassReplacer(inPath,verbose);
-		final LambdaLoader lambdaReplacer = new LambdaLoader();
 		inst.addTransformer(replacer,true);
-		inst.addTransformer(lambdaReplacer,true);
 		
 		Runtime.getRuntime().addShutdownHook(new Thread() {
 			@Override
@@ -65,9 +63,6 @@ public class Agent {
 
         // Transform already loaded classes
 		for (Class<?> c : inst.getAllLoadedClasses()) {
-            // Does some side effect which loads InnerClassLambdaMetaFactory with a simple test lambda
-            // Without this call it does not load
-            c.getPackage();
 			if (inst.isModifiableClass(c)) {
 				inst.retransformClasses(c);
 			} else if(verbose) {
@@ -83,7 +78,6 @@ public class Agent {
 				}
 			}
 		}
-        inst.removeTransformer(lambdaReplacer);
 
         // Classes loaded further down the line will be modified via ClassReplacer's transform() method
 	}
