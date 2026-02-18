@@ -282,6 +282,9 @@ public class ReflLogger {
 
     public static String tryGetLambdaHashedName(Class<?> clazz) {
         String className = clazz.getName();
+        if (clazz.isArray()) {
+            className = clazz.getCanonicalName();
+        }
         try {
             if (className.contains("$$Lambda")) {
                 Field hashField = clazz.getDeclaredField("__TAMIFLEX_HASH");
@@ -468,6 +471,7 @@ public class ReflLogger {
         return className;
     }
 
+    // TODO: should we use getCanonicalName here?
 	private static String getTypeName(Class<?> type) {
 		//copied from java.lang.reflect.Field.getTypeName(Class)
 		if (type.isArray()) {
