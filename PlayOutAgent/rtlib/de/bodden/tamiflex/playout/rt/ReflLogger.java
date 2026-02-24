@@ -22,6 +22,7 @@ import org.objectweb.asm.commons.SimpleRemapper;
 
 import static de.bodden.tamiflex.normalizer.Hasher.isGeneratedClass;
 import static de.bodden.tamiflex.normalizer.Hasher.generateHashNumber;
+import static de.bodden.tamiflex.normalizer.Hasher.generateHashNumberForHidden;
 import static de.bodden.tamiflex.normalizer.Hasher.hashedClassNameForGeneratedClassBytes;
 
 import java.io.BufferedReader;
@@ -155,7 +156,7 @@ public class ReflLogger {
 		if(isReentrant()) return;
 		try {
 			StackTraceElement frame = getInvokingFrame();
-            String className = tryGetLambdaHashedName(c);
+            String className = tryGetHiddenHashedName(c);
 			logAndIncrementTargetClassEntry(frame.getClassName()+"."+frame.getMethodName(),frame.getLineNumber(),classMethodKind,className);
 		} finally {
 			leavingReflectionAPI();
@@ -177,7 +178,7 @@ public class ReflLogger {
 		try {
 			StackTraceElement frame = getInvokingFrame();
 			String[] paramTypes = classesToTypeNames(c.getParameterTypes());
-            String className = tryGetLambdaHashedName(c.getDeclaringClass());
+            String className = tryGetHiddenHashedName(c.getDeclaringClass());
 			logAndIncrementTargetMethodEntry(frame.getClassName()+"."+frame.getMethodName(),frame.getLineNumber(),constructorMethodKind,className,"void","<init>", c.isAccessible(), paramTypes);
 
 		} finally {
@@ -210,8 +211,8 @@ public class ReflLogger {
                 localOutDir.mkdirs();
             }
 
-            generateHashNumber(originalClassName, c);
-            String fullHashedInternalName = hashedClassNameForGeneratedClassBytes(c); 
+            generateHashNumberForHidden(originalClassName, c);
+            String fullHashedInternalName = hashedClassNameForGeneratedClassBytes(c);
 
             String hashedSimpleName = fullHashedInternalName.substring(fullHashedInternalName.lastIndexOf('/') + 1);
             String fileName = hashedSimpleName + ".class";
@@ -280,18 +281,18 @@ public class ReflLogger {
         return byteCodeToReturn;
     }
 
-    public static String tryGetLambdaHashedName(Class<?> clazz) {
+    public static String tryGetHiddenHashedName(Class<?> clazz) {
         String className = clazz.getName();
         if (clazz.isArray()) {
             className = clazz.getCanonicalName();
         }
         try {
-            if (className.contains("$$Lambda")) {
-                Field hashField = clazz.getDeclaredField("__TAMIFLEX_HASH");
-                hashField.setAccessible(true);
-                String s = (String)hashField.get(null);
-                className = s;
-            }
+            Field hashField = clazz.getDeclaredField("__TAMIFLEX_HASH");
+            hashField.setAccessible(true);
+            String s = (String)hashField.get(null);
+            className = s;
+        } catch (NoSuchFieldException e) {
+            // Skip
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -348,9 +349,7 @@ public class ReflLogger {
 				}
 			} 
 
-            if (className.contains("$$Lambda")) {
-                className = tryGetLambdaHashedName(resolved.getDeclaringClass());
-            }
+            className = tryGetHiddenHashedName(resolved.getDeclaringClass());
 			
 			logAndIncrementTargetMethodEntry(frame.getClassName()+"."+frame.getMethodName(),frame.getLineNumber(),methodKind,className,getTypeName(resolved.getReturnType()),resolved.getName(), m.isAccessible(), paramTypes);
 		} catch (Exception e) {
@@ -483,14 +482,14 @@ public class ReflLogger {
 			    cl = cl.getComponentType();
 			}
 			StringBuffer sb = new StringBuffer();
-			sb.append(tryGetLambdaHashedName(cl));
+			sb.append(tryGetHiddenHashedName(cl));
 			for (int i = 0; i < dimensions; i++) {
 			    sb.append("[]");
 			}
 			return sb.toString();
 		    } catch (Throwable e) { /*FALLTHRU*/ }
 		}
-		return tryGetLambdaHashedName(type);
+		return tryGetHiddenHashedName(type);
 	}
 
 	/**
