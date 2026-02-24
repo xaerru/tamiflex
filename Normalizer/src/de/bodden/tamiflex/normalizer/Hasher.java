@@ -76,7 +76,6 @@ public class Hasher {
 		
         ClassReader creader = new ClassReader(classBytes);
     	ClassWriter writer = new ClassWriter(ClassWriter.COMPUTE_MAXS); // I think COMPUTE_MAXS suffices here for hash computation
-        boolean isLambda = theClassName.contains("$$Lambda");
     	
         ClassRemapper visitor = new ClassRemapper(ASM9, writer, 
             new Remapper() {
@@ -158,17 +157,91 @@ public class Hasher {
 					|| generatedClassNameToHashedClassName.get(theClassName).equals(hashedName) :
 					"Hashed names not stable for "+theClassName+" -> "+generatedClassNameToHashedClassName.get(theClassName)+", "+hashedName;
 					
-                if (isLambda)
-                    generatedClassBytesToHashedClassName.put(classBytes, hashedName);
-                else
-                    generatedClassNameToHashedClassName.put(theClassName, hashedName);
+                generatedClassNameToHashedClassName.put(theClassName, hashedName);
                 break;
 			}
 		}
-        if (isLambda)
-            assert generatedClassBytesToHashedClassName.containsKey(classBytes);
-        else
-            assert generatedClassNameToHashedClassName.containsKey(theClassName);
+        assert generatedClassNameToHashedClassName.containsKey(theClassName);
+	}
+
+	public synchronized static void generateHashNumberForHidden(final String theClassName, byte[] classBytes) throws NoHashedNameException {
+		boolean usingAssertions = false; assert usingAssertions = true;
+		
+		// If we don't use assertions then simply return if the hash code was already computed
+		if (!usingAssertions && generatedClassNameToHashedClassName.containsKey(theClassName)) return;
+		
+		assert isGeneratedClass(theClassName) : "Class "+theClassName+" does not have an instable class name.";
+		
+        ClassReader creader = new ClassReader(classBytes);
+    	ClassWriter writer = new ClassWriter(ClassWriter.COMPUTE_MAXS); // I think COMPUTE_MAXS suffices here for hash computation
+
+        ClassRemapper visitor = new ClassRemapper(ASM9, writer, 
+            new Remapper() {
+                // Rename type references to generated classes (for hashing purposes)
+                @Override
+                public String map(String typeName) {
+                    if (theClassName.equals(typeName)) return "$$$NORMALIZED$$$";
+
+                    String newName = generatedClassNameToHashedClassName.get(typeName);
+                    if (Hasher.isGeneratedClass(typeName) && newName==null) {
+                        // Should not happen because LinkedHashMap is used in POA/ClassDumper 
+                        // which maintains the order in which classes are loaded
+                        // See section 4.4.1 of Tamiflex's technical report
+                        throw new NoHashedNameException(typeName);
+                    }
+
+                    if (newName!=null) typeName = newName;
+                    return super.map(typeName);
+                }
+            }
+        ) {
+            @Override
+    		public void visitSource(String source, String debug) {
+    			/* we ignore the source-file attribute during hashing;
+    			 * the position at which this attribute is inserted is kind of random,
+    			 * and can therefore lead to unwanted noise */
+    		}
+
+            // Rename type references (in String constants) to generated classes (for hashing purposes)
+            // See ClassRenamer for further understanding
+            @Override
+    		public MethodVisitor visitMethod(int access, String name, 
+                    String desc, String signature, String[] exceptions) {
+                MethodVisitor mv = super.visitMethod(access, name, desc, signature, exceptions);
+                mv = new RemappingStringConstantVisitor(mv, 
+                    new StringRemapper() {
+                        @Override
+                        public String remapStringConstant(String constant) {
+                            String slashed = slashed(constant);
+                            if (theClassName.equals(slashed)) return "$$$NORMALIZED$$$";
+
+                            String to = generatedClassNameToHashedClassName.get(slashed);
+                            if (Hasher.isGeneratedClass(slashed) && to==null) {
+                                // Should not happen
+                                throw new NoHashedNameException(slashed);
+                            }
+
+                            if (to!=null) constant = dotted(to);
+    					    return super.remapStringConstant(constant);
+                        }
+                    }
+                );
+                return mv;
+            }
+        };
+
+    	creader.accept(visitor, 0);
+        byte[] renamed = writer.toByteArray();
+		
+        // Compute Hash
+		// String hash = SHAHash.SHA1(renamed);
+        // Use CRC32 for now because with SHA1 fails when called by InnerClassLambdaMetaFactory
+        CRC32 crc = new CRC32();
+        crc.update(renamed);
+		String hash = Long.toHexString(crc.getValue());
+        String hashedName = theClassName + "$HASHED$" + hash;
+        generatedClassBytesToHashedClassName.put(classBytes, hashedName);
+        assert generatedClassBytesToHashedClassName.containsKey(classBytes);
 	}
 	
 	public static boolean isGeneratedClass(String className) {
