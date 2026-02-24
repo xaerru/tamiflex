@@ -12,6 +12,8 @@ package de.bodden.tamiflex.normalizer;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassWriter;
@@ -52,7 +54,9 @@ public class Hasher {
         "BySpringCGLIB",                                                // DaCapo-23.10 spring benchmark
         // "$HibernateProxy",                                              // DaCapo-23.10 spring benchmark
   //       "org/eclipse/jdt/internal/core/search/indexing/IndexManager",   // DaCapo-23.10 eclipse benchmark
-        "$$Lambda"                                                      // Treat Lambda classes as generated
+        "\\$\\$Lambda",                                                      // Treat Lambda classes as generated
+        "jdk\\/proxy\\d+\\/\\$Proxy",
+        "net\\/bytebuddy\\/description\\/(?:method|type)\\/\\$Proxy"
         // Note: Yet to address tradebeans and tradesoap benchmarks from DaCapo-23.10
         /*,"schemaorg_apache_xmlbeans/system/" these names seem to be stable, as they are already hashed */
 	};
@@ -136,8 +140,14 @@ public class Hasher {
         // Anything post the first occurance of infix is ignored and replaced with a hash value
 		String hash = SHAHash.SHA1(renamed);
 		for (String infix: instableNames) {
-			if (theClassName.contains(infix)) {
-				String hashedName = theClassName.substring(0, theClassName.indexOf(infix)+infix.length()) + "$HASHED$" + hash;
+            Matcher matcher = Pattern.compile(infix).matcher(theClassName);
+            if (matcher.find()) {
+				String hashedName = theClassName.substring(0, matcher.end()) + "$HASHED$" + hash;
+                // Special handling for jdk.proxy
+                // TODO: Handle this in Play in agent
+                if (infix.equals("jdk\\/proxy\\d+\\/\\$Proxy")) {
+                    hashedName = theClassName.replaceAll("(jdk/proxy)\\d+(/\\$Proxy)\\d+", "$1$2") + "$HASHED$" + hash;
+                }
 				
                 // Useful check to find out previously unknown instable class names
 				assert !generatedClassNameToHashedClassName.containsKey(theClassName)
@@ -160,8 +170,9 @@ public class Hasher {
 	public static boolean isGeneratedClass(String className) {
 		assert !className.contains(".") : "Class name must contain slashes, not dots: "+className; 
 		for (String name: instableNames) {
-			if (className.contains(name))
-				return true;
+            if (Pattern.compile(name).matcher(className).find()) {
+                return true;
+            }
 		}
 		return false;
 	}
