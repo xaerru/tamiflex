@@ -240,7 +240,7 @@ public class Agent {
 			} else {
                 // (In order) Cannot modify Primitive classes, Arrays, classes loaded by the bootstrap class loader, Core Java classes
                 // Other than those on encountering an unmodifiable class send a warning
-				if (!c.isPrimitive() && !c.isArray() && (c.getPackage()==null || !c.getPackage().getName().startsWith("java.lang"))) {
+				if (verbose && !c.isPrimitive() && !c.isArray() && (c.getPackage()==null || !c.getPackage().getName().startsWith("java.lang"))) {
                     // Cannot modify some synthetic classes too
                     if (c.isSynthetic()) {
                         System.err.println("WARNING: Cannot dump (unmodifiable) SYNTHETIC class "+c.getName());

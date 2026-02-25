@@ -77,7 +77,7 @@ public class ClassDumper implements ClassFileTransformer {
 			oldBytes = classNameToBytes.put(className, classfileBuffer);
 		}
 
-		if(oldBytes!=null && !Arrays.equals(classfileBuffer, oldBytes)) {
+		if(verbose && oldBytes!=null && !Arrays.equals(classfileBuffer, oldBytes)) {
 			System.err.println("WARNING: There exist two different classes with name "+className);
 		}
 
