@@ -260,7 +260,7 @@ public class ReflLogger {
                         "__TAMIFLEX_HASH",
                         "Ljava/lang/String;",
                         null,
-                        hashedSimpleName
+                        fullHashedInternalName
                     );
                     if (fv != null) {
                         fv.visitEnd();
