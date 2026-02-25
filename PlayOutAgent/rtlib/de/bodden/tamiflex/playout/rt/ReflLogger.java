@@ -306,6 +306,33 @@ public class ReflLogger {
 	public static void methodMethodInvoke(Object receiver, Method m, Kind methodKind) {
 		methodMethodInvoke(receiver, m, methodKind, null);
 	}
+
+    // Resolve default implementation of a method in an interface
+    private static Method findDefaultInterfaceMethod(Class<?> clazz, String name, Class<?>[] paramTypes) {
+        for (Class<?> iface : clazz.getInterfaces()) {
+            try {
+                Method method = iface.getDeclaredMethod(name, paramTypes);
+                if (method.isDefault()) {
+                    return method;
+                }
+            } catch (NoSuchMethodException e) {
+                // Continue searching
+            }
+
+            // Recursively search parent interfaces
+            Method found = findDefaultInterfaceMethod(iface, name, paramTypes);
+            if (found != null) {
+                return found;
+            }
+        }
+
+        // Also check the superclass's interfaces if we are starting from a class
+        if (clazz.getSuperclass() != null) {
+             return findDefaultInterfaceMethod(clazz.getSuperclass(), name, paramTypes);
+        }
+
+        return null;
+    }
 	
 	public static void methodMethodInvoke(Object receiver, Method m, Kind methodKind, Class<?> getMethodReceiverClass) {
 		if(isReentrant()) return;
@@ -336,6 +363,11 @@ public class ReflLogger {
 					c = c.getSuperclass();
 				}				
 			} while(resolved==null && c!=null);
+
+            // If not found in super classes try to resolve inside interfaces
+            if (resolved == null) {
+                resolved = findDefaultInterfaceMethod(receiverClass, m.getName(), m.getParameterTypes());
+            }
 			if(resolved==null) {
 				Error error = new Error("Method not found : "+m+" in class "+receiverClass+" and super classes.");
 				error.printStackTrace();
