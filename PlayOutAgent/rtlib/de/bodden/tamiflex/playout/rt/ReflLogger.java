@@ -293,6 +293,9 @@ public class ReflLogger {
             className = s;
         } catch (NoSuchFieldException e) {
             // Skip
+        } catch (NoClassDefFoundError e) {
+            // Skip because Class depends on libraries not present in the class path
+            // Spring throws this
         } catch (Exception e) {
             e.printStackTrace();
         }
