@@ -54,9 +54,7 @@ public class ClassRenamer {
 	public static byte[] replaceClassNamesInBytes(final Map<String, String> fromTo,	byte[] classBytes) {
 		ClassReader creader = new ClassReader(classBytes);
 
-        // Check if 0 can be passed as an argument to the constructor as that would be much more efficient
-        // Possibly a valid optim. as no transformations that affect the size of operand stack, local variables or stack map frames are taking place
-    	ClassWriter writer = new ClassWriter(ClassWriter.COMPUTE_FRAMES);
+    	ClassWriter writer = new ClassWriter(0);
 
         ClassRemapper visitor = new ClassRemapper(ASM9, writer, 
             new Remapper() {
