@@ -1,6 +1,8 @@
 package de.bodden.tamiflex.playout.transformation.invoke;
 
 import static org.objectweb.asm.Opcodes.ARETURN;
+import static org.objectweb.asm.Opcodes.ASM9;
+import static org.objectweb.asm.Opcodes.INVOKESTATIC;
 
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.commons.Method;
