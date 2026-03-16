@@ -30,6 +30,10 @@ import java.util.Map.Entry;
 import java.util.Set;
 
 import org.objectweb.asm.ClassVisitor;
+import org.objectweb.asm.ClassReader;
+import org.objectweb.asm.ClassWriter;
+import org.objectweb.asm.MethodVisitor;
+import org.objectweb.asm.Opcodes;
 
 import de.bodden.tamiflex.normalizer.NameExtractor;
 
@@ -70,6 +74,43 @@ public class ClassDumper implements ClassFileTransformer {
         if(className.startsWith("openj9/")) return null;
 		
 		byte[] oldBytes;
+
+        // Instrument bytebuddy RandomString to prevent randomized field names in generated classes
+        if (className != null && className.equals("net/bytebuddy/utility/RandomString")) {
+            ClassReader cr = new ClassReader(classfileBuffer);
+
+            ClassWriter cw = new ClassWriter(cr, 0);
+
+            ClassVisitor cv = new ClassVisitor(Opcodes.ASM9, cw) {
+                @Override
+                public MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
+                    MethodVisitor mv = super.visitMethod(access, name, descriptor, signature, exceptions);
+
+                    if ("nextString".equals(name) && "()Ljava/lang/String;".equals(descriptor)) {
+                        return new MethodVisitor(Opcodes.ASM9, mv) {
+                            @Override
+                            public void visitInsn(int opcode) {
+                                if (opcode == Opcodes.ARETURN) {
+                                    super.visitInsn(Opcodes.POP);
+                                    super.visitLdcInsn("TAMIFLEX");
+                                }
+                                super.visitInsn(opcode);
+                            };
+                        };
+                    }
+                    return mv;
+                }
+            };
+
+            cr.accept(cv, 0);
+            byte[] modifiedBytes = cw.toByteArray();
+
+            synchronized (this) {
+                classNameToBytes.put(className, modifiedBytes);
+            }
+
+            return modifiedBytes;
+        }
 
         // Synchronization is necessary as a single static instance of ClassDumper is maintained in Agent.java
         // This instance is passed for class file transformations(which could occur in multiple threads simultaneously)
