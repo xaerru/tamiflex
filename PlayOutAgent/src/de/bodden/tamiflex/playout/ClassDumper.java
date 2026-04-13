@@ -69,7 +69,6 @@ public class ClassDumper implements ClassFileTransformer {
 		}
 		if(hasShutDown) return null;
 		if(className.startsWith(Agent.PKGNAME)) return null;
-		if(className.startsWith(ASM_PKGNAME)) return null;
 		if(className.startsWith(NORMALIZER_PKGNAME)) return null;
         if(className.startsWith("openj9/")) return null;
 		
