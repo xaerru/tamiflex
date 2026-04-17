@@ -52,6 +52,7 @@ public class Agent {
 		if(!inst.isRetransformClassesSupported()) {
 			throw new RuntimeException("retransformation not supported");
 		}
+        new java.util.LinkedList<>().iterator();
 		
 		System.out.println("============================================================");
 		System.out.println("TamiFlex Play-Out Agent Version "+Agent.class.getPackage().getImplementationVersion());
@@ -273,6 +274,7 @@ public class Agent {
 		agentJarFilePath = locationOfAgent.getPath().substring(0, locationOfAgent.getPath().indexOf("!"));		
 		URI uri = new URI(agentJarFilePath);
 		JarFile jarFile = new JarFile(new File(uri));
+        // TODO: This might not be needed because we specify this in the MANIFEST.MF
 		inst.appendToBootstrapClassLoaderSearch(jarFile);
 	}
 	

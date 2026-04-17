@@ -410,8 +410,13 @@ public class ReflLogger {
                 resolved = findDefaultInterfaceMethod(receiverClass, m.getName(), m.getParameterTypes());
             }
 			if(resolved==null) {
-				Error error = new Error("Method not found : "+m+" in class "+receiverClass+" and super classes.");
-				error.printStackTrace();
+                // getUnsafe is not found but resolve anyway
+                if (m.toString().equals("public static sun.misc.Unsafe sun.misc.Unsafe.getUnsafe()")) {
+                    resolved = m;
+                } else {
+                    Error error = new Error("Method not found : "+m+" in class "+receiverClass+" and super classes.");
+                    error.printStackTrace();
+                }
 			}
 			
 			String[] paramTypes = classesToTypeNames(resolved.getParameterTypes());
