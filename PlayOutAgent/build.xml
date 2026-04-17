@@ -46,6 +46,7 @@
            <attribute name="Main-Class" value="de.bodden.tamiflex.playout.Agent"/>
            <attribute name="Can-Retransform-Classes" value="true"/>
            <attribute name="Implementation-Version" value="${tf.version}"/> 
+           <attribute name="Boot-Class-Path" value="poa-${tf.version}.jar poa.jar"/>
        </manifest>
 
         <jar destfile="poa-${tf.version}.jar" manifest="META-INF/MANIFEST.MF">
