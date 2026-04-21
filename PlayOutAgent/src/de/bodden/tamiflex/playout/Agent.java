@@ -84,6 +84,10 @@ public class Agent {
 			System.err.println("No outDir given!");
 		}
 		
+        // Pass in outPath as agent argument
+        if (agentArgs != null && !agentArgs.isEmpty()) {
+            outPath = agentArgs;
+        }
 		File outDir = new File(outPath);
 		if(outDir.exists()) {
 			if(!outDir.isDirectory()) {
