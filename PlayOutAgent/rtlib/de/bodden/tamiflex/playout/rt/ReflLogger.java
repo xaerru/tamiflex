@@ -41,6 +41,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.net.Socket;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -220,10 +221,6 @@ public class ReflLogger {
             String fileName = hashedSimpleName + ".class";
             File outFile = new File(localOutDir, fileName);
 
-            if (outFile.exists()) {
-                outFile.delete();
-            }
-
             // Replace all references with the hashed name
             ClassWriter cwDump = new ClassWriter(0);
 
@@ -242,12 +239,21 @@ public class ReflLogger {
             cr.accept(cvDump, 0);
             byte[] dumpedBytes = cwDump.toByteArray();
 
-            // Write the renamed bytes to disk
-            try (FileOutputStream fos = new FileOutputStream(outFile)) {
-                fos.write(dumpedBytes);
-                // System.out.println("Dumped Lambda: " + outFile.getAbsolutePath());
-            } catch (IOException e) {
-                e.printStackTrace();
+            if (outFile.exists()) {
+                // Compare new file with old file, if they are not the same throw an exception
+                // If they are the same keep the old file
+                byte[] existingBytes = Files.readAllBytes(outFile.toPath());
+                if (!Arrays.equals(dumpedBytes, existingBytes)) {
+                    throw new Exception("FATAL: Classfile with same name has different contents on this run: " + outFile.toPath());
+                }
+            } else {
+                // Write the renamed bytes to disk
+                try (FileOutputStream fos = new FileOutputStream(outFile)) {
+                    fos.write(dumpedBytes);
+                    // System.out.println("Dumped Lambda: " + outFile.getAbsolutePath());
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
             }
 
             // Add __TAMIFLEX_HASH to the original(non-renamed) class before returning it to generateInnerClass()
