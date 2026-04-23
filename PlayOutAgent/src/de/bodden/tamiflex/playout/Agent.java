@@ -101,6 +101,8 @@ public class Agent {
 				System.exit(1);
 			}
 		}
+
+        ReflLogger.setOutPath(outPath);
 		
 		final File logFile = new File(outDir,"refl.log");
 		
@@ -131,7 +133,8 @@ public class Agent {
 					}
 				}
 				classDumper.writeClassesToDisk();
-				ReflLogger.writeLogfileToDisk(verboseOutput,classDumper.newClasses);
+                ReflLogger.writeHiddenClassesToDisk();
+                ReflLogger.writeLogfileToDisk(verboseOutput,classDumper.newClasses + ReflLogger.newHiddenClasses);
 				
 				// If DB jar exists, log file is dumped to the database
 				String agentJarDir = agentJarFilePath.substring(0, agentJarFilePath.lastIndexOf('/'));
