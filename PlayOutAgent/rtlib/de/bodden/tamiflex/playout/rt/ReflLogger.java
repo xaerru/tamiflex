@@ -269,7 +269,7 @@ public class ReflLogger {
         }
     }
 
-    public static byte[] dumpLambdaClass(byte[] c, String outPath) {
+    public static byte[] dumpLambdaClass(byte[] c) {
         if (isReentrant()) return c;
         byte[] byteCodeToReturn = c;
         try {
