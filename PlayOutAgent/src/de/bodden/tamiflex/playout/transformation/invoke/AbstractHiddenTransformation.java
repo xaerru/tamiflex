@@ -58,9 +58,6 @@ public abstract class AbstractHiddenTransformation extends AbstractTransformatio
                     super.visitFieldInsn(GETFIELD, "java/lang/invoke/MethodHandles$Lookup$ClassFile", "bytes", "[B");
                     // Stack: [String (name), byte[] (oldBytes)]
 
-                    super.visitLdcInsn(Agent.getOutPath());
-                    // Stack: [String (name), byte[] (oldBytes), String (outPath)]
-
                     super.visitMethodInsn(INVOKESTATIC,
                         "de/bodden/tamiflex/playout/rt/ReflLogger",
                         methodName(),

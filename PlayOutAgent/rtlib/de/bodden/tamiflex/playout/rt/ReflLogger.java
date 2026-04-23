@@ -269,7 +269,7 @@ public class ReflLogger {
         }
     }
 
-    public static byte[] dumpHiddenClass(byte[] c, String outPath) {
+    public static byte[] dumpHiddenClass(byte[] c) {
         if (isReentrant()) return c;
         byte[] byteCodeToReturn = c;
         try {
