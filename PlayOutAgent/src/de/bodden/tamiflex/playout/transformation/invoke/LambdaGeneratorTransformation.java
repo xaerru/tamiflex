@@ -16,6 +16,6 @@ public class LambdaGeneratorTransformation extends AbstractLambdaTransformation 
 
 	@Override
 	protected String methodSignature() {
-		return "([BLjava/lang/String;)[B";
+		return "([B)[B";
 	}
 }
