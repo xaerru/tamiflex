@@ -276,6 +276,13 @@ public class ReflLogger {
             ClassReader cr = new ClassReader(c);
             String originalClassName = cr.getClassName();
 
+            // Ignore LambdaForm classes to converge
+            if (originalClassName.startsWith("java/lang/invoke/LambdaForm$BMH") ||
+                originalClassName.startsWith("java/lang/invoke/LambdaForm$DMH") ||
+                originalClassName.startsWith("java/lang/invoke/LambdaForm$MH")) {
+                return byteCodeToReturn;
+            }
+
             generateHashNumberForHidden(originalClassName, c);
             String fullHashedInternalName = hashedClassNameForGeneratedClassBytes(c);
 
