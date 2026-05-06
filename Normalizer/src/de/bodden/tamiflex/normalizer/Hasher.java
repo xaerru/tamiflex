@@ -54,7 +54,6 @@ public class Hasher {
         "BySpringCGLIB",                                                // DaCapo-23.10 spring benchmark
         // "$HibernateProxy",                                              // DaCapo-23.10 spring benchmark
   //       "org/eclipse/jdt/internal/core/search/indexing/IndexManager",   // DaCapo-23.10 eclipse benchmark
-        "\\$\\$Lambda",                                                      // Treat Lambda classes as generated
         "jdk\\/proxy\\d+\\/\\$Proxy",
         "net\\/bytebuddy\\/description\\/(?:method|type)\\/\\$Proxy"
         // Note: Yet to address tradebeans and tradesoap benchmarks from DaCapo-23.10
