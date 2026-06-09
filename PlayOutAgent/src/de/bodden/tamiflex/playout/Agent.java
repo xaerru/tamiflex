@@ -219,7 +219,7 @@ public class Agent {
 			if(!dir.exists()) dir.mkdirs();
 			try {
 				FileOutputStream fos = new FileOutputStream(f);
-				InputStream is = Agent.class.getClassLoader().getResourceAsStream(f.getName());
+				InputStream is = Agent.class.getResourceAsStream("/" + f.getName());
 				if(is==null) {
 					fos.close();
 					throw new InternalError("No default properties file found in agent JAR file!");
