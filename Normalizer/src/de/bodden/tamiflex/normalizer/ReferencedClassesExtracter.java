@@ -35,7 +35,7 @@ public final class ReferencedClassesExtracter extends ClassRemapper {
 
 	public ReferencedClassesExtracter(ClassVisitor cv, final Set<String> res) {
 		super(ASM9, cv, 
-            new Remapper() {
+            new Remapper(ASM9) {
                 @Override
                 public String map(String typeName) {
                     if (isGeneratedClass(typeName))

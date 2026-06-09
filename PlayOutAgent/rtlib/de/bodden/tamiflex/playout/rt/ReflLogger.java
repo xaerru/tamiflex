@@ -191,7 +191,7 @@ public class ReflLogger {
 			StackTraceElement frame = getInvokingFrame();
 			String[] paramTypes = classesToTypeNames(c.getParameterTypes());
             String className = tryGetHiddenHashedName(c.getDeclaringClass());
-			logAndIncrementTargetMethodEntry(frame.getClassName()+"."+frame.getMethodName(),frame.getLineNumber(),constructorMethodKind,className,"void","<init>", c.isAccessible(), paramTypes);
+			logAndIncrementTargetMethodEntry(frame.getClassName()+"."+frame.getMethodName(),frame.getLineNumber(),constructorMethodKind,className,"void","<init>", c.canAccess(null), paramTypes);
 
 		} finally {
 			leavingReflectionAPI();
@@ -231,7 +231,7 @@ public class ReflLogger {
                 // Replace all references with the hashed name
                 ClassWriter cwDump = new ClassWriter(0);
 
-                Remapper remapper = new Remapper() {
+                Remapper remapper = new Remapper(Opcodes.ASM9) {
                     @Override
                     public String map(String internalName) {
                         if (internalName.equals(originalClassName)) {

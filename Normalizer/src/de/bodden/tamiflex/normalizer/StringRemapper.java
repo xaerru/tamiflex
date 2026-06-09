@@ -11,6 +11,7 @@
 package de.bodden.tamiflex.normalizer;
 
 import org.objectweb.asm.commons.Remapper;
+import static org.objectweb.asm.Opcodes.ASM9;
 
 /**
  * A {@link Remapper} that not only re-maps type names but also string
@@ -23,6 +24,10 @@ import org.objectweb.asm.commons.Remapper;
  * needs to be updated for ensuring correctness of the transformation
  */
 public class StringRemapper extends Remapper {
+
+    public StringRemapper() {
+        super(ASM9);
+    }
 	
 	public String remapStringConstant(String constant) {
 		// By default, don't re-map anything

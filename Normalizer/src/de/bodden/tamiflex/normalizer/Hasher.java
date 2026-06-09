@@ -77,7 +77,7 @@ public class Hasher {
     	ClassWriter writer = new ClassWriter(ClassWriter.COMPUTE_MAXS); // I think COMPUTE_MAXS suffices here for hash computation
     	
         ClassRemapper visitor = new ClassRemapper(ASM9, writer, 
-            new Remapper() {
+            new Remapper(ASM9) {
                 // Rename type references to generated classes (for hashing purposes)
                 @Override
                 public String map(String typeName) {
@@ -171,7 +171,7 @@ public class Hasher {
     	ClassWriter writer = new ClassWriter(ClassWriter.COMPUTE_MAXS); // I think COMPUTE_MAXS suffices here for hash computation
 
         ClassRemapper visitor = new ClassRemapper(ASM9, writer, 
-            new Remapper() {
+            new Remapper(ASM9) {
                 // Rename type references to generated classes (for hashing purposes)
                 @Override
                 public String map(String typeName) {

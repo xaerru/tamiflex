@@ -57,7 +57,7 @@ public class ClassRenamer {
     	ClassWriter writer = new ClassWriter(0);
 
         ClassRemapper visitor = new ClassRemapper(ASM9, writer, 
-            new Remapper() {
+            new Remapper(ASM9) {
                 // Rename type references to generated classes
                 @Override
                 public String map(String typeName) {
