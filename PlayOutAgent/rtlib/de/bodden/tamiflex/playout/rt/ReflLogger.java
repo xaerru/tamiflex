@@ -209,63 +209,65 @@ public class ReflLogger {
 	}
 
     public static void writeHiddenClassesToDisk() {
-        try {
-            for (byte[] c: hiddenClassBytes) {
-                ClassReader cr = new ClassReader(c);
-                String originalClassName = cr.getClassName();
+        synchronized(ReflLogger.class) {
+            try {
+                for (byte[] c: hiddenClassBytes) {
+                    ClassReader cr = new ClassReader(c);
+                    String originalClassName = cr.getClassName();
 
-                String fullHashedInternalName = hashedClassNameForGeneratedClassBytes(c);
+                    String fullHashedInternalName = hashedClassNameForGeneratedClassBytes(c);
 
-                File localOutDir = new File(outPath);
-                String packageName = "";
-                if (originalClassName.contains("/")) {
-                    packageName = originalClassName.substring(0, originalClassName.lastIndexOf('/'));
-                    localOutDir = new File(localOutDir, packageName);
-                    localOutDir.mkdirs();
-                }
+                    File localOutDir = new File(outPath);
+                    String packageName = "";
+                    if (originalClassName.contains("/")) {
+                        packageName = originalClassName.substring(0, originalClassName.lastIndexOf('/'));
+                        localOutDir = new File(localOutDir, packageName);
+                        localOutDir.mkdirs();
+                    }
 
-                String hashedSimpleName = fullHashedInternalName.substring(fullHashedInternalName.lastIndexOf('/') + 1);
-                String fileName = hashedSimpleName + ".class";
-                File outFile = new File(localOutDir, fileName);
+                    String hashedSimpleName = fullHashedInternalName.substring(fullHashedInternalName.lastIndexOf('/') + 1);
+                    String fileName = hashedSimpleName + ".class";
+                    File outFile = new File(localOutDir, fileName);
 
-                // Replace all references with the hashed name
-                ClassWriter cwDump = new ClassWriter(0);
+                    // Replace all references with the hashed name
+                    ClassWriter cwDump = new ClassWriter(0);
 
-                Remapper remapper = new Remapper(Opcodes.ASM9) {
-                    @Override
-                    public String map(String internalName) {
-                        if (internalName.equals(originalClassName)) {
-                            return fullHashedInternalName;
+                    Remapper remapper = new Remapper(Opcodes.ASM9) {
+                        @Override
+                        public String map(String internalName) {
+                            if (internalName.equals(originalClassName)) {
+                                return fullHashedInternalName;
+                            }
+                            return internalName;
                         }
-                        return internalName;
-                    }
-                };
+                    };
 
-                ClassVisitor cvDump = new ClassRemapper(cwDump, remapper);
+                    ClassVisitor cvDump = new ClassRemapper(cwDump, remapper);
 
-                cr.accept(cvDump, 0);
-                byte[] dumpedBytes = cwDump.toByteArray();
+                    cr.accept(cvDump, 0);
+                    byte[] dumpedBytes = cwDump.toByteArray();
 
-                if (outFile.exists()) {
-                    // Compare new file with old file, if they are not the same throw an exception
-                    // If they are the same keep the old file
-                    byte[] existingBytes = Files.readAllBytes(outFile.toPath());
-                    if (!Arrays.equals(dumpedBytes, existingBytes)) {
-                        throw new Exception("FATAL: Classfile with same name has different contents on this run: " + outFile.toPath());
-                    }
-                } else {
-                    // Write the renamed bytes to disk
-                    try (FileOutputStream fos = new FileOutputStream(outFile)) {
-                        fos.write(dumpedBytes);
-                        newHiddenClasses++;
-                        System.out.println("Dumped Lambda: " + outFile.getAbsolutePath());
-                    } catch (IOException e) {
-                        e.printStackTrace();
+                    if (outFile.exists()) {
+                        // Compare new file with old file, if they are not the same throw an exception
+                        // If they are the same keep the old file
+                        byte[] existingBytes = Files.readAllBytes(outFile.toPath());
+                        if (!Arrays.equals(dumpedBytes, existingBytes)) {
+                            throw new Exception("FATAL: Classfile with same name has different contents on this run: " + outFile.toPath());
+                        }
+                    } else {
+                        // Write the renamed bytes to disk
+                        try (FileOutputStream fos = new FileOutputStream(outFile)) {
+                            fos.write(dumpedBytes);
+                            newHiddenClasses++;
+                            System.out.println("Dumped Lambda: " + outFile.getAbsolutePath());
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
                     }
                 }
+            } catch (Exception e) {
+                e.printStackTrace();
             }
-        } catch (Exception e) {
-            e.printStackTrace();
         }
     }
 
