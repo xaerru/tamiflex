@@ -21,6 +21,11 @@ import java.lang.instrument.Instrumentation;
 import java.lang.instrument.UnmodifiableClassException;
 import java.net.URISyntaxException;
 import java.util.Properties;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
+import java.util.jar.JarFile;
+import de.bodden.tamiflex.playin.rt.HiddenClassLoader;
 
 import de.bodden.tamiflex.normalizer.Hasher;
 
@@ -33,22 +38,29 @@ public class Agent {
 
 	private static String inPath = "out";
 	private static boolean verbose = false;
+	private static String agentJarFilePath;
 
 	public static void premain(String agentArgs, Instrumentation inst) throws IOException, ClassNotFoundException, UnmodifiableClassException, URISyntaxException, IllegalClassFormatException {
 		
 		System.out.println("=======================================================");
 		System.out.println("TamiFlex Play-In Agent Version "+Agent.class.getPackage().getImplementationVersion());
 		loadProperties();
+		appendRtJarToBootClassPath(inst);
+        HiddenClassLoader.setInPath(inPath);
 		
 		final ClassReplacer replacer = new ClassReplacer(inPath,verbose);
+        final HiddenClassTransformer hiddenClassTransformer = new HiddenClassTransformer();
 		inst.addTransformer(replacer,true);
+		inst.addTransformer(hiddenClassTransformer,true);
 		
 		Runtime.getRuntime().addShutdownHook(new Thread() {
 			@Override
 			public void run() {
 				System.out.println("\n=======================================================");
 				System.out.println("TamiFlex Play-In Agent Version "+Agent.class.getPackage().getImplementationVersion());
-				System.out.println("Replaced "+replacer.numSuccess+" out of "+replacer.numInvoked+" classes.");
+                int numSuccess = replacer.numSuccess + HiddenClassLoader.numSuccess;
+                int numInvoked = replacer.numInvoked + HiddenClassLoader.numInvoked;
+				System.out.println("Replaced "+numSuccess+" out of "+numInvoked+" classes.");
 				System.out.println("=======================================================");
 			}
 		});
@@ -72,6 +84,7 @@ public class Agent {
 				}
 			}
 		}
+        inst.removeTransformer(hiddenClassTransformer);
 
         // Classes loaded further down the line will be modified via ClassReplacer's transform() method
 	}
@@ -152,6 +165,18 @@ public class Agent {
 		System.out.println(DISCLAIMER);
 		System.out.println("============================================================");
 		System.exit(1);
+	}
+
+	private static void appendRtJarToBootClassPath(Instrumentation inst) throws URISyntaxException, IOException {
+		URL locationOfAgent = Agent.class.getResource("/de/bodden/tamiflex/playin/rt/HiddenClassLoader.class");
+		if(locationOfAgent==null) {
+			System.err.println("Support library for loading hidden classes not found on classpath.");
+			System.exit(1);
+		}
+		agentJarFilePath = locationOfAgent.getPath().substring(0, locationOfAgent.getPath().indexOf("!"));		
+		URI uri = new URI(agentJarFilePath);
+		JarFile jarFile = new JarFile(new File(uri));
+		inst.appendToBootstrapClassLoaderSearch(jarFile);
 	}
 	
 	private final static String DISCLAIMER=

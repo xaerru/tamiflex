@@ -180,8 +180,32 @@ public class ClassReplacer implements ClassFileTransformer {
 				e.printStackTrace();
 			}
 		}
-		URLClassLoader loader = new URLClassLoader(urls,null); // null -> no delegation
-		return loader;
+        return new URLClassLoader(urls, null) {
+
+            @Override
+            public URL getResource(String name) {
+                return findResource(name);
+            }
+
+            @Override
+            protected Class<?> loadClass(String name, boolean resolve) {
+                synchronized (getClassLoadingLock(name)) {
+                    Class<?> c = findLoadedClass(name);
+
+                    if (c == null) {
+                        try {
+                            c = findClass(name);
+                        } catch (ClassNotFoundException e) {
+                            return null;
+                        }
+                    }
+                    if (resolve) {
+                        resolveClass(c);
+                    }
+                    return c;
+                }
+            }
+        };
 	}
 
 	/**
