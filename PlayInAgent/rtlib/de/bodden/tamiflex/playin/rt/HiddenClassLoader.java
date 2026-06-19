@@ -53,7 +53,7 @@ public class HiddenClassLoader {
 		inPath = path;
 	}
 
-    public static byte[] loadHiddenClass(byte[] c) {
+    public static byte[] loadHiddenClass(byte[] c, ClassLoader loader) {
         if (isReentrant()) return c;
         byte[] returnBytes = c;
         try {
@@ -71,7 +71,11 @@ public class HiddenClassLoader {
 
             String lookupName = currentRuntimeName; 
 
-            File localOutDir = new File(inPath);
+            String loader_name = "null_loader";
+            if (loader != null) {
+                loader_name = loader.getClass().getName();
+            }
+            File localOutDir = new File(inPath, loader_name);
             generateHashNumberForHidden(currentRuntimeName, c);
             String simpleName = hashedClassNameForGeneratedClassBytes(c);;
             if (lookupName.contains("/")) {
@@ -96,7 +100,7 @@ public class HiddenClassLoader {
                     e.printStackTrace();
                 }
             } else {
-                System.err.println("Dumped lambda not found: " + targetFile.getAbsolutePath());
+                // System.err.println("Dumped lambda not found: " + targetFile.getAbsolutePath());
                 returnBytes = c;
             }
         } catch (Exception e) {

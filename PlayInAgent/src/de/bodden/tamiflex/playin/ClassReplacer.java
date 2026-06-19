@@ -35,23 +35,24 @@ public class ClassReplacer implements ClassFileTransformer {
 	
 	private static final String ASM_PKGNAME = ClassVisitor.class.getPackage().getName().replace('.', '/');
 
-	/** The class loader that ought to be used to replace classes. */
-	protected final ClassLoader loader;
-
 	/** If true, the agent will issue warnings. **/
 	protected final boolean verbose;
+
+    // Input directory
+	protected final String inPath;
 
 	/** A mapping from class names of generated classes to the original class bytes of the respective class, i.e.,
 	 *  the bytes as they were just about to be loaded on the current execution.
 	 *  See {@link Hasher#isGeneratedClass(String)} to determine if a class is generated in this sense.
 	 */
 	protected Map<String,byte[]> generatedClassNameToOriginalBytes = new HashMap<String, byte[]>();
+	protected Map<String,URLClassLoader> pathToClassLoader = new HashMap<String, URLClassLoader>();
 	
 	public int numInvoked, numSuccess;
 	
-	public ClassReplacer(String srcPath, boolean verbose) {
+	public ClassReplacer(String inPath, boolean verbose) {
 		this.verbose = verbose;				
-		this.loader = createClassLoader(srcPath);		
+		this.inPath = inPath;		
 	}
 
 	public byte[] transform(ClassLoader ldr, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, byte[] classfileBuffer) throws IllegalClassFormatException {
@@ -65,7 +66,11 @@ public class ClassReplacer implements ClassFileTransformer {
 		try{
 			if(isGeneratedClass(className))
 				storeClassBytesOfGeneratedClass(className, classfileBuffer);			
-			return tryToReplaceClassBytes(className);
+            String loader_name = "null_loader";
+            if (ldr != null) {
+                loader_name = ldr.getClass().getName();
+            }
+			return tryToReplaceClassBytes(className, loader_name);
 		} catch (RuntimeException e) {
 			e.printStackTrace();
 			throw e;
@@ -75,7 +80,7 @@ public class ClassReplacer implements ClassFileTransformer {
 		}
 	}
 
-	private byte[] tryToReplaceClassBytes(final String className) {
+	private byte[] tryToReplaceClassBytes(final String className, final String loader_name) {
 		try {
             // Obviously don't modify files belonging to the below packages for correct functioning of PIA
 			if(className.startsWith(Agent.PKGNAME)) return null;
@@ -100,7 +105,8 @@ public class ClassReplacer implements ClassFileTransformer {
 			
 			String classFileName = classNameInFileSystem+".class";
 			
-			InputStream is = loader.getResourceAsStream(classFileName);
+            // Need multiple loaders, one for each directory of out/
+			InputStream is = getOrCreateClassLoader(inPath + loader_name).getResourceAsStream(classFileName);
 			if (is==null) {
 				if (verbose) {
 					if (isGeneratedClass)
@@ -169,7 +175,10 @@ public class ClassReplacer implements ClassFileTransformer {
 	 * @param srcPath The path to load from.
 	 * @return the class loader
 	 */
-	private URLClassLoader createClassLoader(String srcPath) {
+	private URLClassLoader getOrCreateClassLoader(String srcPath) {
+        if (pathToClassLoader.containsKey(srcPath)) {
+            return pathToClassLoader.get(srcPath);
+        }
 		String[] pathSegments = srcPath.split(File.pathSeparator);
 		URL[] urls = new URL[pathSegments.length];
 		int i=0;
@@ -180,12 +189,15 @@ public class ClassReplacer implements ClassFileTransformer {
 				e.printStackTrace();
 			}
 		}
-        return new URLClassLoader(urls, null) {
-            @Override
-            public URL getResource(String name) {
-                return findResource(name);
-            }
-        };
+        URLClassLoader cl = 
+            new URLClassLoader(urls, null) {
+                @Override
+                public URL getResource(String name) {
+                    return findResource(name);
+                }
+            };
+        pathToClassLoader.put(srcPath, cl);
+        return cl;
 	}
 
 	/**

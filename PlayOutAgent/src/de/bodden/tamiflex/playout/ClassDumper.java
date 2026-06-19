@@ -105,7 +105,11 @@ public class ClassDumper implements ClassFileTransformer {
             byte[] modifiedBytes = cw.toByteArray();
 
             synchronized (this) {
-                classNameToBytes.put(className, modifiedBytes);
+                String loaderName = "null_loader";
+                if (loader != null) {
+                    loaderName = loader.getClass().getName();
+                }
+                classNameToBytes.put(loaderName + " " + className, modifiedBytes);
             }
 
             return modifiedBytes;
@@ -114,7 +118,11 @@ public class ClassDumper implements ClassFileTransformer {
         // Synchronization is necessary as a single static instance of ClassDumper is maintained in Agent.java
         // This instance is passed for class file transformations(which could occur in multiple threads simultaneously)
 		synchronized (this) {
-			oldBytes = classNameToBytes.put(className, classfileBuffer);
+            String loaderName = "null_loader";
+            if (loader != null) {
+                loaderName = loader.getClass().getName();
+            }
+            oldBytes = classNameToBytes.put(loaderName + " " + className, classfileBuffer);
 		}
 
 		if(verbose && oldBytes!=null && !Arrays.equals(classfileBuffer, oldBytes)) {
@@ -133,6 +141,10 @@ public class ClassDumper implements ClassFileTransformer {
 			for (Map.Entry<String, byte[]> entry: entrySet) {
 				String className = entry.getKey();
 				byte[] classfileBuffer = entry.getValue();
+
+                int idx = className.indexOf(' ');
+                String loaderName = className.substring(0, idx);
+                className = className.substring(idx + 1);
 		
 				if (isGeneratedClass(className)) {
 					generateHashNumber(className, classfileBuffer);
@@ -142,7 +154,7 @@ public class ClassDumper implements ClassFileTransformer {
 	
 				if (dontReallyDump) continue; //don't dump
 				
-				File localOutDir = outDir;
+				File localOutDir = new File(outDir, loaderName);
 				
 				localOutDir.mkdirs();
 				

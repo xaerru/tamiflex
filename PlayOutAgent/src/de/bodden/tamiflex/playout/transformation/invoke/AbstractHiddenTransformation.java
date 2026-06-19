@@ -11,6 +11,7 @@ import static org.objectweb.asm.Opcodes.ASM9;
 import static org.objectweb.asm.Opcodes.PUTFIELD;
 import static org.objectweb.asm.Opcodes.GETFIELD;
 import static org.objectweb.asm.Opcodes.INVOKESPECIAL;
+import static org.objectweb.asm.Opcodes.INVOKEVIRTUAL;
 import static org.objectweb.asm.Opcodes.SWAP;
 import static org.objectweb.asm.Opcodes.ILOAD;
 
@@ -57,6 +58,15 @@ public abstract class AbstractHiddenTransformation extends AbstractTransformatio
 
                     super.visitFieldInsn(GETFIELD, "java/lang/invoke/MethodHandles$Lookup$ClassFile", "bytes", "[B");
                     // Stack: [String (name), byte[] (oldBytes)]
+
+                    super.visitVarInsn(ALOAD, 0);
+                    // Stack: [String (name), byte[] (oldBytes), this]
+
+                    super.visitFieldInsn(GETFIELD, "java/lang/invoke/MethodHandles$Lookup", "lookupClass", "Ljava/lang/Class;");
+                    // Stack: [String (name), byte[] (oldBytes), this.lookupClass]
+
+                    super.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Class", "getClassLoader", "()Ljava/lang/ClassLoader;", false);
+                    // Stack: [String (name), byte[] (oldBytes), ClassLoader]
 
                     super.visitMethodInsn(INVOKESTATIC,
                         "de/bodden/tamiflex/playout/rt/ReflLogger",

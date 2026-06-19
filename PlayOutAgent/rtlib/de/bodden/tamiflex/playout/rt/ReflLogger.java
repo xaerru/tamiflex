@@ -48,6 +48,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -62,7 +63,7 @@ public class ReflLogger {
 	protected static Map<String,Map<RuntimeLogEntry,RuntimeLogEntry>> containerMethodToEntries = new HashMap<String, Map<RuntimeLogEntry,RuntimeLogEntry>>();
 
     // hidden class bytes to dump
-	protected static final LinkedHashSet<byte[]> hiddenClassBytes = new LinkedHashSet<byte[]>();
+	protected static final LinkedHashMap<String, byte[]> hiddenClassBytes = new LinkedHashMap<String, byte[]>();
 
 	public static int newHiddenClasses = 0;
 	
@@ -211,13 +212,19 @@ public class ReflLogger {
     public static void writeHiddenClassesToDisk() {
         synchronized(ReflLogger.class) {
             try {
-                for (byte[] c: hiddenClassBytes) {
+                for (Map.Entry<String, byte[]> entry : hiddenClassBytes.entrySet()) {
+                    String className = entry.getKey();
+                    byte[] c = entry.getValue();
                     ClassReader cr = new ClassReader(c);
                     String originalClassName = cr.getClassName();
 
-                    String fullHashedInternalName = hashedClassNameForGeneratedClassBytes(c);
+                    int idx = className.indexOf(' ');
+                    String loaderName = className.substring(0, idx);
+                    className = className.substring(idx + 1);
 
-                    File localOutDir = new File(outPath);
+                    final String fullHashedInternalName = className;
+
+                    File localOutDir = new File(outPath, loaderName);
                     String packageName = "";
                     if (originalClassName.contains("/")) {
                         packageName = originalClassName.substring(0, originalClassName.lastIndexOf('/'));
@@ -259,7 +266,7 @@ public class ReflLogger {
                         try (FileOutputStream fos = new FileOutputStream(outFile)) {
                             fos.write(dumpedBytes);
                             newHiddenClasses++;
-                            System.out.println("Dumped Lambda: " + outFile.getAbsolutePath());
+                            // System.out.println("Dumped Lambda: " + outFile.getAbsolutePath());
                         } catch (IOException e) {
                             e.printStackTrace();
                         }
@@ -271,10 +278,15 @@ public class ReflLogger {
         }
     }
 
-    public static byte[] dumpHiddenClass(byte[] c) {
+    public static byte[] dumpHiddenClass(byte[] c, ClassLoader loader) {
         if (isReentrant()) return c;
         byte[] byteCodeToReturn = c;
         try {
+            String loader_name = "null_loader";
+            if (loader != null) {
+                loader_name = loader.getClass().getName();
+            }
+
             ClassReader cr = new ClassReader(c);
             String originalClassName = cr.getClassName();
 
@@ -289,7 +301,7 @@ public class ReflLogger {
             String fullHashedInternalName = hashedClassNameForGeneratedClassBytes(c);
 
             synchronized (ReflLogger.class) {
-                hiddenClassBytes.add(c);
+                hiddenClassBytes.put(loader_name + " " + fullHashedInternalName, c);
             }
 
             // Add __TAMIFLEX_HASH to the original(non-renamed) class before returning it to generateInnerClass()

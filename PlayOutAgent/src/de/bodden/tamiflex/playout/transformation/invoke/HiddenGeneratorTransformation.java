@@ -16,6 +16,6 @@ public class HiddenGeneratorTransformation extends AbstractHiddenTransformation 
 
 	@Override
 	protected String methodSignature() {
-		return "([B)[B";
+		return "([BLjava/lang/ClassLoader;)[B";
 	}
 }
