@@ -28,12 +28,14 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.Comparator;
 
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
+import org.objectweb.asm.tree.ClassNode;
 
 import de.bodden.tamiflex.normalizer.NameExtractor;
 
@@ -132,12 +134,30 @@ public class ClassDumper implements ClassFileTransformer {
         // We are only interested in reading the class file, no intention of modifying them
 		return null;
 	}
+
+    public static byte[] normalizeClass(byte[] originalClassBytes) {
+        ClassReader cr = new ClassReader(originalClassBytes);
+
+        ClassNode cn = new ClassNode();
+        cr.accept(cn, 0);
+
+        // Deterministically sort fields and methods by name and descriptor
+        cn.fields.sort(Comparator.comparing(f -> f.name + f.desc));
+        cn.methods.sort(Comparator.comparing(m -> m.name + m.desc));
+
+        // Deterministically set constant pool
+        ClassWriter cw = new ClassWriter(0);
+        cn.accept(cw);
+
+        return cw.toByteArray();
+    }
 	
 	public void writeClassesToDisk() {
         // Synchronization is necessary as the static instance of ClassDumper in Agent.java calls writeClassesToDisk() as part
         // of it's shutdown hook, which could(I think not) run parallely with any call to transform() which can modify classNameToBytes
 		synchronized (this) {
 			Set<Entry<String, byte[]>> entrySet = classNameToBytes.entrySet();
+            System.out.println("New classes dumped:");
 			for (Map.Entry<String, byte[]> entry: entrySet) {
 				String className = entry.getKey();
 				byte[] classfileBuffer = entry.getValue();
@@ -147,6 +167,8 @@ public class ClassDumper implements ClassFileTransformer {
                 className = className.substring(idx + 1);
 		
 				if (isGeneratedClass(className)) {
+                    // This normalization is needed because Proxy classes don't have consistent constantpool and method ordering
+                    classfileBuffer = normalizeClass(classfileBuffer);
 					generateHashNumber(className, classfileBuffer);
 					className = hashedClassNameForGeneratedClassName(className);
 					classfileBuffer = replaceGeneratedClassNamesByHashedNames(classfileBuffer);
@@ -174,6 +196,7 @@ public class ClassDumper implements ClassFileTransformer {
 				if(outFile.exists()) {
 					outFile.delete();
 				} else {
+                    System.out.println(outFile.toString());
 					newClasses++;
 				}
 				FileOutputStream fos = null;

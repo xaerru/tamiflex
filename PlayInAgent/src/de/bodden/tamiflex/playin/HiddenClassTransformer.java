@@ -25,7 +25,6 @@ import static org.objectweb.asm.Opcodes.INVOKEVIRTUAL;
 import static org.objectweb.asm.Opcodes.SWAP;
 import static org.objectweb.asm.Opcodes.ILOAD;
 
-
 public class HiddenClassTransformer implements ClassFileTransformer {
 
     @Override
@@ -33,19 +32,29 @@ public class HiddenClassTransformer implements ClassFileTransformer {
                             ProtectionDomain protectionDomain, byte[] classfileBuffer) 
                             throws IllegalClassFormatException {
         try {
-            if (!className.startsWith("java/lang/invoke/MethodHandles$Lookup")) {
-                return null; // Return null means "no changes, use original"
+            if (className == null) {
+                return null;
             }
 
-            ClassReader cr = new ClassReader(classfileBuffer);
+            // Condition for Hidden Classes
+            if (className.startsWith("java/lang/invoke/MethodHandles$Lookup")) {
+                ClassReader cr = new ClassReader(classfileBuffer);
+                ClassWriter cw = new ClassWriter(cr, ClassWriter.COMPUTE_FRAMES);
+                ClassVisitor cv = new HiddenClassModificationVisitor(ASM9, cw);
+                cr.accept(cv, ClassReader.EXPAND_FRAMES);
+                return cw.toByteArray();
+            } 
 
-            ClassWriter cw = new ClassWriter(cr, ClassWriter.COMPUTE_FRAMES);
+            // Condition for Class.getMethods instrumentation
+            if (className.equals("java/lang/Class")) {
+                ClassReader cr = new ClassReader(classfileBuffer);
+                ClassWriter cw = new ClassWriter(cr, ClassWriter.COMPUTE_FRAMES);
+                ClassVisitor cv = new ClassModificationVisitor(ASM9, cw);
+                cr.accept(cv, ClassReader.EXPAND_FRAMES);
+                return cw.toByteArray();
+            }
 
-            ClassVisitor cv = new HiddenClassModificationVisitor(Opcodes.ASM9, cw);
-
-            cr.accept(cv, ClassReader.EXPAND_FRAMES);
-
-            return cw.toByteArray();
+            return null; // Return null means "no changes, use original"
 
         } catch (Throwable e) {
             e.printStackTrace();
@@ -53,6 +62,7 @@ public class HiddenClassTransformer implements ClassFileTransformer {
         }
     }
 
+    // Hidden Class Instrumentation
     static class HiddenClassModificationVisitor extends ClassVisitor {
 
         public HiddenClassModificationVisitor(int api, ClassVisitor classVisitor) {
@@ -128,6 +138,46 @@ public class HiddenClassTransformer implements ClassFileTransformer {
                 // Stack: [..., NewClassFile, int (flags), ClassFileDumper]
             }
             super.visitMethodInsn(opcode, owner, name, descriptor, isInterface);
-        };
+        }
+    }
+
+    // Class.getMethods Instrumentation
+    static class ClassModificationVisitor extends ClassVisitor {
+
+        public ClassModificationVisitor(int api, ClassVisitor classVisitor) {
+            super(api, classVisitor);
+        }
+
+        @Override
+        public MethodVisitor visitMethod(int access, String name, String descriptor, 
+                                         String signature, String[] exceptions) {
+            MethodVisitor mv = super.visitMethod(access, name, descriptor, signature, exceptions);
+
+            if ("getMethods".equals(name) && "()[Ljava/lang/reflect/Method;".equals(descriptor)) {
+                return new ClassGetMethodAdapter(api, mv);
+            }
+
+            return mv;
+        }
+    }
+
+    static class ClassGetMethodAdapter extends MethodVisitor {
+        public ClassGetMethodAdapter(int api, MethodVisitor methodVisitor) {
+            super(api, methodVisitor);
+        }
+
+        @Override
+        public void visitInsn(int opcode) {
+            if (opcode == ARETURN) {
+                super.visitMethodInsn(
+                    INVOKESTATIC,
+                    "de/bodden/tamiflex/playin/rt/HiddenClassLoader",
+                    "sortMethods",
+                    "([Ljava/lang/reflect/Method;)[Ljava/lang/reflect/Method;",
+                    false
+                );
+            }
+            super.visitInsn(opcode);
+        }
     }
 }

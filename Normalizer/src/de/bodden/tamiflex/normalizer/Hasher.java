@@ -142,7 +142,6 @@ public class Hasher {
             if (matcher.find()) {
 				String hashedName = theClassName.substring(0, matcher.end()) + "$HASHED$" + hash;
                 // Special handling for jdk.proxy
-                // TODO: Handle this in Play in agent
                 if (infix.equals("jdk\\/proxy\\d+\\/\\$Proxy")) {
                     hashedName = theClassName.replaceAll("(jdk/proxy)\\d+(/\\$Proxy)\\d+", "$1$2") + "$HASHED$" + hash;
                 }

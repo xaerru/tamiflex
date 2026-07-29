@@ -24,6 +24,11 @@ import java.security.ProtectionDomain;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Comparator;
+
+import org.objectweb.asm.ClassReader;
+import org.objectweb.asm.ClassWriter;
+import org.objectweb.asm.tree.ClassNode;
 
 import org.objectweb.asm.ClassVisitor;
 
@@ -80,6 +85,23 @@ public class ClassReplacer implements ClassFileTransformer {
 		}
 	}
 
+    public static byte[] normalizeClass(byte[] originalClassBytes) {
+        ClassReader cr = new ClassReader(originalClassBytes);
+
+        ClassNode cn = new ClassNode();
+        cr.accept(cn, 0);
+
+        // Deterministically sort fields and methods by name and descriptor
+        cn.fields.sort(Comparator.comparing(f -> f.name + f.desc));
+        cn.methods.sort(Comparator.comparing(m -> m.name + m.desc));
+
+        // Deterministically set constant pool
+        ClassWriter cw = new ClassWriter(0);
+        cn.accept(cw);
+
+        return cw.toByteArray();
+    }
+
 	private byte[] tryToReplaceClassBytes(final String className, final String loader_name) {
 		try {
             // Obviously don't modify files belonging to the below packages for correct functioning of PIA
@@ -94,6 +116,8 @@ public class ClassReplacer implements ClassFileTransformer {
 				originalBytes = generatedClassNameToOriginalBytes.get(className);
 				isGeneratedClass = Hasher.isGeneratedClass(className);
 				if (isGeneratedClass) {
+                    // This normalization is needed because Proxy classes don't have consistent constantpool and method ordering
+                    originalBytes = normalizeClass(originalBytes);
 					// Generate hash numbers based on the contents of all generated classes seen so far 
 					Hasher.generateHashNumber(className, originalBytes);
 					// We will load the class file using the hashed name

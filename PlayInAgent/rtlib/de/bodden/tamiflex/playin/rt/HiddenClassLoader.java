@@ -8,6 +8,9 @@ import org.objectweb.asm.ClassReader;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.lang.reflect.Method;
+import java.util.Arrays;
+import java.util.Comparator;
 
 public class HiddenClassLoader {
 	private static String inPath;
@@ -109,5 +112,44 @@ public class HiddenClassLoader {
 			leavingReflectionAPI();
         }
         return returnBytes;
+    }
+
+    public static Method[] sortMethods(Method[] m) {
+		if(isReentrant()) return m;
+		try {
+            if (m == null || m.length <= 1) {
+                return m;
+            }
+
+            Method[] sorted = m.clone();
+
+            Arrays.sort(sorted, new Comparator<Method>() {
+                @Override
+                public int compare(Method m1, Method m2) {
+                    int val = m1.getName().compareTo(m2.getName());
+                    if (val != 0) return val;
+
+                    val = Integer.compare(m1.getParameterCount(), m2.getParameterCount());
+                    if (val != 0) return val;
+
+                    Class<?>[] params1 = m1.getParameterTypes();
+                    Class<?>[] params2 = m2.getParameterTypes();
+                    for (int i = 0; i < params1.length; i++) {
+                        String p1 = params1[i].getName();
+                        String p2 = params2[i].getName();
+                        val = p1.compareTo(p2);
+                        if (val != 0) return val;
+                    }
+
+                    String r1 = m1.getReturnType().getName();
+                    String r2 = m2.getReturnType().getName();
+                    return r1.compareTo(r2);
+                }
+            });
+
+            return sorted;
+		} finally {
+			leavingReflectionAPI();
+		}
     }
 }

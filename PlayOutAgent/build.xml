@@ -34,6 +34,7 @@
                 <pathelement location="../Normalizer/lib/asm-9.9.1.jar"/>
                 <pathelement location="../Normalizer/lib/asm-commons-9.9.1.jar"/>
                 <pathelement location="../Normalizer/lib/asm-util-9.9.1.jar"/>
+                <pathelement location="../Normalizer/lib/asm-tree-9.9.1.jar"/>
             </classpath>
           <compilerarg value="-Xlint:deprecation" />
         </javac>
@@ -56,6 +57,7 @@
             <zipfileset src="../Normalizer/lib/asm-9.9.1.jar"/>
             <zipfileset src="../Normalizer/lib/asm-commons-9.9.1.jar"/>
             <zipfileset src="../Normalizer/lib/asm-util-9.9.1.jar"/>
+            <zipfileset src="../Normalizer/lib/asm-tree-9.9.1.jar"/>
         </jar>
 		<delete dir="bin-agent"/>
 		<delete dir="META-INF"/>
