@@ -157,7 +157,6 @@ public class ClassDumper implements ClassFileTransformer {
         // of it's shutdown hook, which could(I think not) run parallely with any call to transform() which can modify classNameToBytes
 		synchronized (this) {
 			Set<Entry<String, byte[]>> entrySet = classNameToBytes.entrySet();
-            System.out.println("New classes dumped:");
 			for (Map.Entry<String, byte[]> entry: entrySet) {
 				String className = entry.getKey();
 				byte[] classfileBuffer = entry.getValue();
@@ -196,7 +195,6 @@ public class ClassDumper implements ClassFileTransformer {
 				if(outFile.exists()) {
 					outFile.delete();
 				} else {
-                    System.out.println(outFile.toString());
 					newClasses++;
 				}
 				FileOutputStream fos = null;
