@@ -11,7 +11,7 @@ public class HiddenGeneratorTransformation extends AbstractHiddenTransformation 
 
 	@Override
 	protected String methodName() {
-		return "dumpHiddenClass";
+		return "processHiddenClass";
 	}
 
 	@Override

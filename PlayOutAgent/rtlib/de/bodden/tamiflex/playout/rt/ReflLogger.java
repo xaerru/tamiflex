@@ -279,7 +279,7 @@ public class ReflLogger {
         }
     }
 
-    public static byte[] dumpHiddenClass(byte[] c, ClassLoader loader) {
+    public static byte[] processHiddenClass(byte[] c, ClassLoader loader) {
         if (isReentrant()) return c;
         byte[] byteCodeToReturn = c;
         try {
