@@ -348,7 +348,7 @@ public class ReflLogger {
             Method[] sorted = m.clone();
 
             Arrays.sort(sorted, Comparator.comparing(t ->
-                t.getName() + MethodType.methodType(t.getReturnType(), t.getParameterTypes()).toMethodDescriptorString()
+                t.getName() + MethodType.methodType(t.getReturnType(), t.getParameterTypes()).toMethodDescriptorString() + t.getDeclaringClass().getName()
             ));
 
             return sorted;
