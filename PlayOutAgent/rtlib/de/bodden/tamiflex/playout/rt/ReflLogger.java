@@ -385,28 +385,15 @@ public class ReflLogger {
 
     // Resolve default implementation of a method in an interface
     private static Method findDefaultInterfaceMethod(Class<?> clazz, String name, Class<?>[] paramTypes) {
-        for (Class<?> iface : clazz.getInterfaces()) {
-            try {
-                Method method = iface.getDeclaredMethod(name, paramTypes);
-                if (method.isDefault()) {
-                    return method;
-                }
-            } catch (NoSuchMethodException e) {
-                // Continue searching
+        try {
+            // getMethod automatically resolves the "Most Specific Interface" for public methods
+            Method method = clazz.getMethod(name, paramTypes);
+            if (method.isDefault()) {
+                return method;
             }
-
-            // Recursively search parent interfaces
-            Method found = findDefaultInterfaceMethod(iface, name, paramTypes);
-            if (found != null) {
-                return found;
-            }
+        } catch (NoSuchMethodException e) {
+            // Method not found
         }
-
-        // Also check the superclass's interfaces if we are starting from a class
-        if (clazz.getSuperclass() != null) {
-             return findDefaultInterfaceMethod(clazz.getSuperclass(), name, paramTypes);
-        }
-
         return null;
     }
 	
